@@ -67,15 +67,15 @@ def test_initial_demo_records_unverified(app):
 
 
 def test_render_postgres_url_normalization(monkeypatch):
-    """Verify postgres:// is converted to postgresql:// for SQLAlchemy compatibility on Render."""
+    """Verify postgres:// is converted to postgresql+psycopg2:// for SQLAlchemy compatibility on Render."""
     render_raw_url = "postgres://usr_123:secretpass@dpg-abc-a.oregon-postgres.render.com/docready_db"
     normalized = normalize_db_uri(render_raw_url)
-    assert normalized.startswith("postgresql://")
+    assert normalized.startswith("postgresql+psycopg2://")
     assert "usr_123:secretpass" in normalized
 
     # Also test config.py get_database_uri
     monkeypatch.setenv("DATABASE_URL", render_raw_url)
-    assert get_database_uri().startswith("postgresql://")
+    assert get_database_uri().startswith("postgresql+psycopg2://")
 
 
 def test_states_api_from_database(client, app):

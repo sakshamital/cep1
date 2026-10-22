@@ -46,10 +46,17 @@ _scoped_session = None
 
 
 def normalize_db_uri(uri: Optional[str] = None) -> str:
-    """Normalize database connection string, converting postgres:// to postgresql:// for SQLAlchemy."""
+    """Normalize database connection string for SQLAlchemy compatibility.
+
+    Render provides URLs starting with postgres:// but SQLAlchemy 2.0+ requires
+    postgresql:// and defaults to the psycopg (v3) driver. We explicitly specify
+    psycopg2 since that is the installed driver (psycopg2-binary).
+    """
     raw = uri or os.environ.get("DATABASE_URL") or "sqlite:///instance/documentready.db"
     if raw.startswith("postgres://"):
-        raw = raw.replace("postgres://", "postgresql://", 1)
+        raw = raw.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif raw.startswith("postgresql://"):
+        raw = raw.replace("postgresql://", "postgresql+psycopg2://", 1)
     return raw
 
 

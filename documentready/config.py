@@ -7,11 +7,19 @@ os.makedirs(INSTANCE_DIR, exist_ok=True)
 
 
 def get_database_uri() -> str:
-    """Resolve and normalize database URI, converting Render's postgres:// to postgresql://."""
+    """Resolve and normalize database URI, using psycopg2 driver explicitly.
+
+    Render provides postgres:// URLs. SQLAlchemy 2.0+ defaults to psycopg (v3)
+    for bare postgresql:// URLs. We pin to psycopg2 since psycopg2-binary is installed.
+    """
     uri = os.environ.get("DATABASE_URL")
-    if uri and uri.startswith("postgres://"):
-        uri = uri.replace("postgres://", "postgresql://", 1)
-    return uri or f"sqlite:///{os.path.join(INSTANCE_DIR, 'documentready.db')}"
+    if uri:
+        if uri.startswith("postgres://"):
+            uri = uri.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif uri.startswith("postgresql://"):
+            uri = uri.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return uri
+    return f"sqlite:///{os.path.join(INSTANCE_DIR, 'documentready.db')}"
 
 
 class Config:
