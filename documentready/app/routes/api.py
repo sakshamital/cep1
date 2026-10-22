@@ -189,6 +189,30 @@ def get_service(service_id: str):
 
 # ── Documents ─────────────────────────────────────────────────────────────────
 
+@bp.route("/documents")
+def list_documents():
+    """Return all documents with guides, issuing authority, and service usage counts."""
+    repo = get_repo()
+    result = []
+    for d in repo.get_all_documents().values():
+        used_by_ids = repo.get_services_using_document(d.id)
+        result.append({
+            "id": d.id,
+            "name": d.name,
+            "kind": d.kind,
+            "description": d.description,
+            "issuing_authority": d.issuing_authority,
+            "jurisdiction": getattr(d, "jurisdiction", "India"),
+            "verified": d.verified,
+            "has_guide": d.guide_id is not None,
+            "guide_url": f"/guide/{d.id}" if d.guide_id else None,
+            "official_link": getattr(d, "official_link", None),
+            "used_by_count": len(used_by_ids),
+        })
+    result.sort(key=lambda x: x["name"])
+    return _ok(result)
+
+
 @bp.route("/documents/<doc_id>")
 def get_document(doc_id: str):
     try:

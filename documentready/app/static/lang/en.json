@@ -2,6 +2,7 @@
   "site_name": "DocumentReady",
   "site_tagline": "Know before you go",
   "nav_home": "Home",
+  "nav_documents": "Documents",
   "nav_updates": "Updates",
   "nav_about": "About",
   "nav_admin": "Admin",

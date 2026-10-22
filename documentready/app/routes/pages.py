@@ -91,6 +91,14 @@ def guide(doc_id: str):
     return render_template("guide.html", guide=guide_obj, document=doc, prerequisites=prereqs)
 
 
+@bp.route("/documents")
+def documents_list():
+    repo = get_repo()
+    all_docs = list(repo.get_all_documents().values())
+    all_docs.sort(key=lambda d: d.name)
+    return render_template("documents.html", documents=all_docs)
+
+
 @bp.route("/updates")
 def updates():
     notifications = []

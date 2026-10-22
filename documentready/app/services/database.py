@@ -137,9 +137,11 @@ def seed_initial_data(session: Session) -> dict[str, int]:
                 kind=d["kind"],
                 description=d.get("description", ""),
                 issuing_authority=d.get("issuing_authority", ""),
+                jurisdiction=d.get("jurisdiction", "India"),
                 guide_id=d.get("guide_id"),
                 verified=d.get("verified", True),
                 source_note=d.get("source_note", ""),
+                official_link=d.get("official_link"),
                 last_reviewed=d.get("last_reviewed"),
                 last_verified_at=utc_now() if d.get("verified") else None,
                 version=1,
@@ -162,6 +164,11 @@ def seed_initial_data(session: Session) -> dict[str, int]:
             existing.kind = d["kind"]
             existing.description = d.get("description", "")
             existing.issuing_authority = d.get("issuing_authority", "")
+            existing.jurisdiction = d.get("jurisdiction", "India")
+            existing.guide_id = d.get("guide_id")
+            existing.official_link = d.get("official_link")
+            existing.aliases = d.get("aliases", [])
+            existing.prerequisites = d.get("prerequisites", [])
             existing.verified = d.get("verified", True)
             existing.source_note = d.get("source_note", "")
             existing.last_reviewed = d.get("last_reviewed")

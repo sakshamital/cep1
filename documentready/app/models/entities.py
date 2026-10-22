@@ -20,6 +20,9 @@ class Document:
     source_note: str
     last_reviewed: Optional[str]
 
+    jurisdiction: str = "Maharashtra"
+    official_link: Optional[str] = None
+
     @classmethod
     def from_dict(cls, d: dict) -> "Document":
         return cls(
@@ -34,6 +37,8 @@ class Document:
             verified=d.get("verified", False),
             source_note=d.get("source_note", ""),
             last_reviewed=d.get("last_reviewed"),
+            jurisdiction=d.get("jurisdiction", "Maharashtra"),
+            official_link=d.get("official_link"),
         )
 
     def to_dict(self) -> dict:
@@ -49,6 +54,8 @@ class Document:
             "verified": self.verified,
             "source_note": self.source_note,
             "last_reviewed": self.last_reviewed,
+            "jurisdiction": self.jurisdiction,
+            "official_link": self.official_link,
         }
 
 
