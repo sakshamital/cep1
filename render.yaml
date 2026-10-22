@@ -1,0 +1,30 @@
+databases:
+  - name: documentready-postgres
+    databaseName: documentready
+    user: documentready_user
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: documentready
+    env: docker
+    plan: free
+    region: oregon
+    rootDir: documentready
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: documentready-postgres
+          property: connectionString
+      - key: SESSION_COOKIE_SECURE
+        value: "True"
+      - key: INITIAL_ADMIN_PASSWORD
+        generateValue: true

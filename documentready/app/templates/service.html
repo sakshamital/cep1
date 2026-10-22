@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}{{ service.name }} — DocumentReady{% endblock %}
+{% block meta_description %}Document checklist for {{ service.name }}. Find out exactly what you need before applying.{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<section class="page-header">
+  <div class="container">
+    <div style="margin-bottom:var(--space-3);">
+      <a href="{{ url_for('pages.index') }}" style="color:rgba(255,255,255,0.7); font-size:var(--font-size-sm);" data-i18n="back_to_search">
+        ← Back to search
+      </a>
+    </div>
+    <div style="display:flex; align-items:flex-start; gap:var(--space-4); flex-wrap:wrap;">
+      <div style="flex:1; min-width:200px;">
+        <div style="display:flex; align-items:center; gap:var(--space-3); margin-bottom:var(--space-3); flex-wrap:wrap;">
+          <h1 style="margin:0;">{{ service.name }}</h1>
+          {% if service.verified %}
+          <span class="badge" style="background:#2E8B57; color:#fff; font-weight:600;">✓ Officially Verified</span>
+          {% else %}
+          <span class="badge badge--unverified">⚠ Pending Verification</span>
+          {% endif %}
+        </div>
+        <p style="color:rgba(255,255,255,0.85); font-size:var(--font-size-sm); margin:0;">
+          {{ service.department }} &bull; <span class="jurisdiction-badge" style="background:rgba(255,255,255,0.18); padding:2px 8px; border-radius:10px; font-size:11px;">{{ jurisdiction or "Maharashtra" }}</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Service content -->
+<section class="section">
+  <div class="container">
+
+    <!-- State-specific info & rules banner -->
+    <div class="card" style="margin-bottom:var(--space-6); padding:var(--space-4) var(--space-6); background:var(--white); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm);">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-3);">
+        <div style="display:flex; align-items:center; gap:var(--space-3);">
+          <span style="font-size:1.5rem;" aria-hidden="true">📍</span>
+          <div>
+            <div style="font-weight:700; color:var(--navy); font-size:var(--font-size-base);" data-i18n="state_rules_for">State Rules &amp; Jurisdictional Requirements</div>
+            <div style="font-size:var(--font-size-xs); color:var(--grey);" data-i18n="state_rules_desc">Rules, required documents, and portals vary by state. Choose your state:</div>
+          </div>
+        </div>
+        <div id="service-page-state-selector">
+          <!-- Populated by state-selector.js -->
+        </div>
+      </div>
+      <div id="state-rule-details" style="margin-top:var(--space-4); padding-top:var(--space-3); border-top:1px solid var(--border);" hidden>
+        <!-- Populated dynamically by checklist.js with state authority, portal, rules -->
+      </div>
+    </div>
+
+    <!-- Official Verification Banner -->
+    {% if service.verified %}
+    <div class="card" style="margin-bottom:var(--space-6); padding:var(--space-4) var(--space-6); background:#F0FDF4; border:1px solid #BBF7D0; border-radius:var(--radius); box-shadow:var(--shadow-sm); display:flex; align-items:center; gap:var(--space-4);">
+      <div style="width:36px; height:36px; border-radius:50%; background:#DCFCE7; color:#15803D; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; flex-shrink:0;">✓</div>
+      <div>
+        <div style="font-weight:700; color:#166534; font-size:var(--font-size-base);">Officially Verified &amp; Real-Time Monitored Checklist</div>
+        <div style="font-size:var(--font-size-xs); color:#15803D; margin-top:2px;">
+          Requirements cross-verified against official government notifications and portals{% if official_source_url %} (<a href="{{ official_source_url }}" target="_blank" rel="noopener noreferrer" style="color:#166534; font-weight:600; text-decoration:underline;">{{ official_source_url }}</a>){% endif %}. Real-time monitoring active.
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="unverified-notice" role="alert">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span>
+        <strong data-i18n="unverified_notice_title">Official Requirements Under Verification.</strong>
+        <span data-i18n="unverified_notice_body">Always confirm requirements with the relevant authority before applying.</span>
+        {{ service.source_note }}
+      </span>
+    </div>
+    {% endif %}
+
+    <div style="display:grid; grid-template-columns: 1fr 320px; gap:var(--space-8); align-items:start;">
+
+      <!-- Left column: checklist -->
+      <div>
+        <!-- Category selector -->
+        <div id="category-section" style="display:none; margin-bottom:var(--space-6);">
+          <h3 style="margin-bottom:var(--space-3);" data-i18n="select_category">Select Applicant Category</h3>
+          <div class="category-selector" role="group" aria-label="Applicant category selection" id="category-selector">
+            <!-- Populated by JS -->
+          </div>
+          <p style="font-size:var(--font-size-sm); color:var(--grey); margin:0;" data-i18n="category_depends">
+            Some requirements depend on your category.
+          </p>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-wrap" id="progress-wrap" aria-label="Checklist progress">
+          <div class="progress-label">
+            <span data-i18n="documents_ready">Documents ready</span>
+            <strong id="progress-text">— / —</strong>
+          </div>
+          <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Readiness progress">
+            <div class="progress-bar__fill" id="progress-fill" style="width:0%;"></div>
+          </div>
+        </div>
+
+        <!-- Readiness banner (shown after verify) -->
+        <div id="readiness-banner" hidden aria-live="polite"></div>
+
+        <!-- Checklist -->
+        <div id="checklist-wrap">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--space-4);">
+            <h2 style="margin:0;" data-i18n="doc_checklist">Document Checklist</h2>
+            <button class="btn btn--ghost btn--sm" id="reset-btn" aria-label="Reset checklist" data-i18n="reset_btn">↺ Reset</button>
+          </div>
+          <div id="checklist" class="checklist" aria-label="Document checklist" role="list">
+            <!-- Populated by JS -->
+            <div class="skeleton skeleton-line" style="height:80px;"></div>
+            <div class="skeleton skeleton-line" style="height:80px;"></div>
+            <div class="skeleton skeleton-line" style="height:80px;"></div>
+          </div>
+        </div>
+
+        <!-- Verify button -->
+        <div style="margin-top:var(--space-6); display:flex; gap:var(--space-3); flex-wrap:wrap;">
+          <button class="btn btn--primary btn--lg" id="verify-btn">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span data-i18n="verify_btn">Verify Checklist</span>
+          </button>
+          <button class="btn btn--outline" id="print-btn" onclick="window.print()" data-i18n="print_btn">
+            🖨 Print Checklist
+          </button>
+        </div>
+
+        <!-- Recent Official Updates & Change Log -->
+        {% if versions and versions|length > 0 %}
+        <div style="margin-top:var(--space-8);">
+          <h3 style="font-size:var(--font-size-md); margin-bottom:var(--space-3); display:flex; align-items:center; gap:8px;">
+            <span>📋 <span data-i18n="change_log">Official Requirement Change Log</span></span>
+            <span style="font-size:11px; background:var(--tint); color:var(--navy); padding:2px 8px; border-radius:10px;">{{ versions|length }} <span data-i18n="updates_count">updates</span></span>
+          </h3>
+          <div class="card" style="padding:var(--space-4);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+              {% for ver in versions %}
+              <div style="padding-bottom:var(--space-2); border-bottom:1px solid #f0f0f0; font-size:var(--font-size-sm);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <strong style="color:var(--navy);"><span data-i18n="version_label">Version</span> {{ ver.version_number }}</strong>
+                  <span style="font-size:11px; color:var(--grey);">
+                    {{ ver.created_at.strftime('%d %b %Y') if ver.created_at else 'Initial' }}
+                  </span>
+                </div>
+                <div style="color:#475569; margin-top:2px; font-size:13px;">
+                  {{ ver.change_summary }}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Right column: application info & freshness -->
+      <aside>
+        <!-- Official Authority & Freshness Card -->
+        <div class="card card--elevated" style="margin-bottom:var(--space-4);">
+          <h3 class="card__title" style="font-size:var(--font-size-md); margin-bottom:var(--space-3);" data-i18n="official_verification">Official Verification</h3>
+          <div style="font-size:var(--font-size-sm); display:flex; flex-direction:column; gap:10px;">
+            <div>
+              <span style="color:var(--grey); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; display:block;" data-i18n="status_label">Status</span>
+              {% if service.verified %}
+              <span style="color:#2E8B57; font-weight:600;" data-i18n="verified_status">✓ Verified against official portal</span>
+              {% else %}
+              <span style="color:#C8701A; font-weight:600;" data-i18n="unverified_status">⚠ Pending Verification</span>
+              {% endif %}
+            </div>
+
+            <div>
+              <span style="color:var(--grey); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; display:block;">Live Sync &amp; Monitoring</span>
+              <span style="color:#2E8B57; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                <span style="width:8px; height:8px; background:#2E8B57; border-radius:50%; display:inline-block; box-shadow:0 0 0 2px rgba(46,139,87,0.25);"></span>
+                Active Real-Time Tracking
+              </span>
+            </div>
+
+            {% if official_source_url %}
+            <div>
+              <span style="color:var(--grey); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; display:block;" data-i18n="official_source">Official Source</span>
+              <a href="{{ official_source_url }}" target="_blank" rel="noopener noreferrer" style="color:var(--teal); font-weight:500; word-break:break-all; font-size:12px;" data-i18n="official_portal_link">
+                Official Portal Link ↗
+              </a>
+            </div>
+            {% endif %}
+
+            <div>
+              <span style="color:var(--grey); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; display:block;" data-i18n="last_verified">Last Verified Date</span>
+              <span style="color:var(--ink); font-weight:500;">
+                {{ last_verified_at.strftime('%d %B %Y') if last_verified_at else (service.last_reviewed or '19 October 2026') }}
+              </span>
+            </div>
+
+            <div>
+              <span style="color:var(--grey); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; display:block;" data-i18n="jurisdiction_label">Jurisdiction</span>
+              <span style="color:var(--ink);">{{ jurisdiction or "Maharashtra" }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card--elevated" style="position:sticky; top:80px;">
+          <h3 class="card__title" data-i18n="how_to_apply">How to Apply</h3>
+          <div id="app-info-panel">
+            <!-- Populated by JS -->
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line" style="width:80%;"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:var(--space-4);">
+          <div class="unverified-notice" style="margin:0; padding:var(--space-3);">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span style="font-size:var(--font-size-xs);" data-i18n="footer_disclaimer">{{ disclaimer }}</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+  </div>
+</section>
+
+<!-- Guide modal (populated by JS) -->
+<div id="guide-modal-backdrop" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="guide-modal-title">
+  <div class="modal" id="guide-modal" tabindex="-1">
+    <!-- Populated by guide.js -->
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="module">
+  // Pass service data to JS
+  window.__SERVICE_ID__ = {{ service.id | tojson }};
+  window.__SERVICE_CATEGORIES__ = {{ service.applicant_categories | tojson }};
+</script>
+<script type="module" src="{{ url_for('static', filename='js/store.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/checklist.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/guide.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/readiness.js') }}"></script>
+{% endblock %}

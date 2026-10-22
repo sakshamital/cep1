@@ -1,0 +1,101 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Version History &amp; Rollback — DocumentReady Admin{% endblock %}
+
+{% block admin_content %}
+<div style="margin: var(--space-6) 0 var(--space-4) 0;">
+  <h1 style="font-size:var(--font-size-2xl); margin:0;">Version History &amp; Rollback Controls</h1>
+  <p style="color:var(--grey); margin:4px 0 0 0; font-size:var(--font-size-sm);">
+    Full immutable audit history of all published changes with safe 1-click rollback restoration.
+  </p>
+</div>
+
+<!-- Service Selector -->
+<div class="card" style="padding:var(--space-4); margin-bottom:var(--space-6);">
+  <form method="GET" action="{{ url_for('admin.history_view') }}" style="display:flex; gap:var(--space-4); align-items:center;">
+    <label style="font-weight:600; font-size:var(--font-size-sm); white-space:nowrap;">Select Service:</label>
+    <select name="service_id" onchange="this.form.submit()" class="search-input" style="padding-left:10px; border-radius:var(--radius-sm); max-width:400px;">
+      <option value="">-- Choose a Government Service --</option>
+      {% for svc in services %}
+      <option value="{{ svc.id }}" {% if selected_service and selected_service.id == svc.id %}selected{% endif %}>
+        {{ svc.name }} (v{{ svc.version }})
+      </option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+{% if selected_service %}
+<div style="background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-6); margin-bottom:var(--space-6);">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4);">
+    <div>
+      <h2 style="margin:0; font-size:var(--font-size-xl);">{{ selected_service.name }}</h2>
+      <div style="font-size:12px; color:var(--grey); margin-top:2px;">
+        Active Version: <strong>v{{ selected_service.version }}</strong> &bull;
+        Department: {{ selected_service.department }} &bull;
+        Status: {% if selected_service.verified %}<span class="admin-badge badge-success">Verified</span>{% else %}<span class="admin-badge badge-warning">Pending Verification</span>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size:var(--font-size-md); margin-top:var(--space-6); margin-bottom:var(--space-3);">Version Timeline</h3>
+  <div class="table-responsive" style="border:none;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Version</th>
+          <th>Change Summary</th>
+          <th>Published By</th>
+          <th>Date &amp; Time</th>
+          <th>Rollback Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if versions %}
+        {% for ver in versions %}
+        <tr {% if ver.version_number == selected_service.version %}style="background:#F2FAF5;"{% endif %}>
+          <td>
+            <strong>v{{ ver.version_number }}</strong>
+            {% if ver.version_number == selected_service.version %}
+            <span class="admin-badge badge-success" style="margin-left:6px;">Current</span>
+            {% endif %}
+          </td>
+          <td>{{ ver.change_summary }}</td>
+          <td>{{ ver.created_by }}</td>
+          <td style="font-size:11px; color:var(--grey);">
+            {{ ver.created_at.strftime('%d %b %Y, %H:%M') if ver.created_at else '—' }}
+          </td>
+          <td>
+            {% if ver.version_number != selected_service.version %}
+            <form method="POST" action="{{ url_for('admin.rollback_action') }}" onsubmit="return confirm('Restore this service to version {{ ver.version_number }}? A new rollback version record will be created.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <input type="hidden" name="service_id" value="{{ selected_service.id }}" />
+              <input type="hidden" name="target_version" value="{{ ver.version_number }}" />
+              <input type="hidden" name="reason" value="Administrative restoration to v{{ ver.version_number }}" />
+              <button type="submit" class="btn btn--outline btn--sm" style="padding:2px 8px; font-size:11px;">
+                ↺ Rollback to this
+              </button>
+            </form>
+            {% else %}
+            <span style="color:var(--grey); font-size:11px;">Active</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="5" style="text-align:center; color:var(--grey); padding:var(--space-4);">
+            No version history snapshots recorded yet for this service.
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<p style="color:var(--grey); font-size:var(--font-size-sm);">
+  Select a government service above to view its version history and rollback controls.
+</p>
+{% endif %}
+{% endblock %}

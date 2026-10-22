@@ -1,0 +1,204 @@
+/* ============================================================
+   base.css — Reset, typography, layout scaffolding
+   ============================================================ */
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: var(--font-size-base);
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background: var(--color-bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main { flex: 1; }
+
+img, svg { display: block; max-width: 100%; }
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { list-style: none; }
+button, input, select, textarea { font-family: inherit; font-size: inherit; }
+button { cursor: pointer; border: none; background: none; }
+
+/* ── Skip link ── */
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: var(--space-2);
+  background: var(--navy);
+  color: var(--white);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  z-index: 9999;
+  font-weight: 600;
+}
+.skip-link:focus { left: var(--space-4); }
+
+/* ── Typography ── */
+h1, h2, h3, h4, h5 {
+  color: var(--color-heading);
+  font-weight: 700;
+  line-height: 1.25;
+}
+h1 { font-size: var(--font-size-2xl); }
+h2 { font-size: var(--font-size-xl); }
+h3 { font-size: var(--font-size-lg); font-weight: 600; }
+h4 { font-size: var(--font-size-base); font-weight: 600; }
+
+p { margin-bottom: var(--space-4); }
+p:last-child { margin-bottom: 0; }
+
+/* ── Layout container ── */
+.container {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+  padding-inline: var(--space-6);
+}
+.container--wide { max-width: 1200px; }
+
+/* ── Header / Nav ── */
+.site-header {
+  background: var(--navy);
+  color: var(--white);
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+}
+
+.site-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+  color: var(--white);
+}
+
+.site-logo__icon {
+  width: 32px;
+  height: 32px;
+  background: var(--teal);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.site-logo__name {
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+  letter-spacing: -0.3px;
+}
+
+.site-logo__tagline {
+  font-size: var(--font-size-xs);
+  opacity: 0.75;
+  margin-top: 1px;
+}
+
+.site-nav {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.site-nav a {
+  color: rgba(255,255,255,0.85);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), color var(--transition);
+}
+.site-nav a:hover, .site-nav a.active {
+  background: rgba(255,255,255,0.12);
+  color: var(--white);
+  text-decoration: none;
+}
+
+/* ── Footer ── */
+.site-footer {
+  background: var(--ink);
+  color: rgba(255,255,255,0.75);
+  padding-block: var(--space-8);
+  margin-top: var(--space-16);
+}
+
+.site-footer__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: center;
+  text-align: center;
+}
+
+.site-footer p {
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.site-footer a { color: rgba(255,255,255,0.85); }
+.site-footer a:hover { color: var(--white); }
+
+.footer-disclaimer {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--font-size-sm);
+  max-width: 680px;
+  line-height: 1.5;
+}
+
+/* ── Focus rings ── */
+:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── Page header section ── */
+.page-header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--ink) 100%);
+  color: var(--white);
+  padding-block: var(--space-12) var(--space-10);
+}
+
+.page-header h1 { color: var(--white); margin-bottom: var(--space-3); }
+.page-header p { color: rgba(255,255,255,0.8); margin: 0; }
+
+/* ── Section spacing ── */
+.section { padding-block: var(--space-10); }
+.section + .section { border-top: 1px solid var(--line); }
+
+/* ── Aria live region (invisible) ── */
+#aria-live {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

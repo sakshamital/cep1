@@ -1,0 +1,88 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Audit Trail &amp; Job History — DocumentReady Admin{% endblock %}
+
+{% block admin_content %}
+<div style="margin: var(--space-6) 0 var(--space-4) 0;">
+  <h1 style="font-size:var(--font-size-2xl); margin:0;">Audit Trail &amp; Job History</h1>
+  <p style="color:var(--grey); margin:4px 0 0 0; font-size:var(--font-size-sm);">
+    Chronological security logs, monitoring execution attempts, and verification decisions.
+  </p>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-6); align-items:start;">
+  <!-- Left column: Operational Audit Trail -->
+  <div style="background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-4);">
+    <h3 style="margin-top:0; margin-bottom:var(--space-4); font-size:var(--font-size-md);">System Audit Events</h3>
+    <div class="table-responsive" style="border:none;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Actor</th>
+            <th>Details</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in audits %}
+          <tr>
+            <td><strong>{{ a.event_type }}</strong></td>
+            <td>{{ a.actor }}</td>
+            <td style="font-size:11px; max-width:200px; word-break:break-all; font-family:monospace;">
+              {{ a.details_json }}
+            </td>
+            <td style="font-size:10px; color:var(--grey);">
+              {{ a.timestamp.strftime('%d %b, %H:%M:%S') if a.timestamp else '' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Right column: Fetch & Monitor Job History -->
+  <div style="background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-4);">
+    <h3 style="margin-top:0; margin-bottom:var(--space-4); font-size:var(--font-size-md);">Source Fetch History</h3>
+    <div class="table-responsive" style="border:none;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Status</th>
+            <th>Latency</th>
+            <th>Change?</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in fetches %}
+          <tr>
+            <td><strong>{{ f.source_id }}</strong></td>
+            <td>
+              {% if f.http_status == 200 or f.http_status == 304 %}
+              <span class="admin-badge badge-success">{{ f.http_status }}</span>
+              {% else %}
+              <span class="admin-badge badge-danger">{{ f.http_status or 'ERR' }}</span>
+              {% endif %}
+            </td>
+            <td style="font-size:11px;">{{ f.response_time_ms }}ms</td>
+            <td>
+              {% if f.change_detected %}
+              <span class="admin-badge badge-warning">Yes</span>
+              {% else %}
+              <span style="color:var(--grey); font-size:11px;">No</span>
+              {% endif %}
+            </td>
+            <td style="font-size:10px; color:var(--grey);">
+              {{ f.attempted_at.strftime('%d %b, %H:%M:%S') if f.attempted_at else '' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

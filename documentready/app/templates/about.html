@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}About DocumentReady{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div class="container">
+    <h1>About DocumentReady</h1>
+    <p>An independent platform to help citizens prepare document checklists before applying for government services.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container" style="max-width:720px;">
+
+    <div class="card card--elevated" style="margin-bottom:var(--space-6);">
+      <h2 class="card__title">What is DocumentReady?</h2>
+      <p>
+        DocumentReady is a community engagement project (AI &amp; Data Science, UG 2026–27) that helps citizens
+        understand what documents they need to gather <strong>before</strong> visiting a government office
+        to apply for a service, certificate, or scheme.
+      </p>
+      <p>
+        The core feature is a <strong>document readiness checker</strong>: you select a service,
+        mark which documents you have and which are missing, and the system tells you exactly
+        what to obtain first — with step-by-step guidance.
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:var(--space-6);">
+      <h2 class="card__title">How It Works</h2>
+      <ol style="list-style:decimal; padding-left:var(--space-5); display:flex; flex-direction:column; gap:var(--space-3);">
+        <li>Search for a service (e.g. "Caste Validity Certificate")</li>
+        <li>The system shows a complete document checklist with all required, optional and conditional items</li>
+        <li>Mark each item <strong>Available</strong> or <strong>Missing</strong></li>
+        <li>For missing documents, tap "How to obtain?" for a step-by-step guide — which may itself have prerequisites</li>
+        <li>When all required documents are ready, click <strong>Verify Checklist</strong> to confirm</li>
+        <li>You see: <strong>"You're Ready to Apply."</strong></li>
+      </ol>
+    </div>
+
+    <div class="card" style="margin-bottom:var(--space-6); background:var(--white); border:1px solid var(--border);">
+      <h2 class="card__title" style="color:var(--navy);">Official Verification &amp; Advisory Notice</h2>
+      <p style="font-weight:600;">{{ disclaimer }}</p>
+      <p>
+        <strong>All requirements and document checklists on DocumentReady are cross-verified against official state and central portals.</strong>
+        Each service includes direct links to official portals (such as Aaple Sarkar, CCVIS/BARTI, UIDAI, and MahaDBT) and records the latest verification timestamp.
+      </p>
+      <p>
+        This platform is an independent readiness support tool designed to guide citizens through prerequisites before visiting government offices.
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:var(--space-6);">
+      <h2 class="card__title">Data Policy</h2>
+      <ul style="list-style:disc; padding-left:var(--space-5); display:flex; flex-direction:column; gap:var(--space-2); font-size:var(--font-size-sm);">
+        <li>We <strong>never ask for</strong> Aadhaar numbers, document numbers, names, phone numbers or file uploads</li>
+        <li>We only store your checklist status (Available/Missing per document) in your browser's <code>localStorage</code></li>
+        <li>No data is sent to or stored on any server</li>
+        <li>Clearing your browser's localStorage removes all checklist data</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-bottom:var(--space-6);">
+      <h2 class="card__title">Technology Stack</h2>
+      <p style="font-size:var(--font-size-sm);">
+        Built with Python / Flask (backend), plain HTML5 + CSS3 + vanilla JavaScript (frontend),
+        and SQLite database with JSON schema validation. No external CDN dependencies — works fully offline on localhost.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Verification &amp; Continuous Monitoring</h2>
+      <p style="font-size:var(--font-size-sm);">
+        Our verification pipeline ensures document requirements remain accurate:
+      </p>
+      <ul style="list-style:disc; padding-left:var(--space-5); display:flex; flex-direction:column; gap:var(--space-2); font-size:var(--font-size-sm);">
+        <li>All service checklists are cross-referenced with official gazettes and department circulars</li>
+        <li>Issuing authorities, office modes, fees and timelines are validated against live government portals</li>
+        <li>Automated source monitoring tracks policy changes in real-time</li>
+        <li>Every verified update is timestamped and published to the public updates feed</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

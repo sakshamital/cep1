@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}DocumentReady — Find Your Document Requirements{% endblock %}
+{% block meta_description %}Search any government service, certificate or scheme and find out exactly which documents you need to have ready before applying.{% endblock %}
+
+{% block content %}
+
+<!-- Hero search section -->
+<section class="page-header" style="padding-bottom:var(--space-12);">
+  <div class="container" style="text-align:center;">
+    <h1 style="font-size:var(--font-size-3xl); margin-bottom:var(--space-4);" data-i18n="hero_title">
+      Know Exactly What You Need
+    </h1>
+    <p style="font-size:var(--font-size-lg); max-width:520px; margin-inline:auto; margin-bottom:var(--space-8);" data-i18n="hero_subtitle">
+      Search any government service or certificate and get a complete document checklist — before you visit the office.
+    </p>
+
+    <!-- Search box -->
+    <div class="search-wrap" role="search" aria-label="Search government services">
+      <input
+        type="search"
+        id="search-input"
+        class="search-input"
+        placeholder="e.g. Caste Validity Certificate, Income Certificate…"
+        data-i18n="search_placeholder" data-i18n-attr="placeholder"
+        aria-label="Search for a government service or document"
+        aria-autocomplete="list"
+        aria-controls="search-suggestions"
+        aria-expanded="false"
+        autocomplete="off"
+        maxlength="80"
+      />
+      <span class="search-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </span>
+      <div id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions" hidden></div>
+    </div>
+
+    <!-- Popular services -->
+    <div class="popular-chips" id="popular-chips" aria-label="Popular services">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section aria-label="How DocumentReady works">
+  <div class="how-it-works">
+    <div class="how-step">
+      <div class="how-step__num" aria-hidden="true">1</div>
+      <div>
+        <div class="how-step__label" data-i18n="how_step1_label">Search</div>
+        <div class="how-step__desc" data-i18n="how_step1_desc">Find your service or certificate by name</div>
+      </div>
+    </div>
+    <div class="how-step">
+      <div class="how-step__num" aria-hidden="true">2</div>
+      <div>
+        <div class="how-step__label" data-i18n="how_step2_label">Requirements</div>
+        <div class="how-step__desc" data-i18n="how_step2_desc">See the complete document checklist</div>
+      </div>
+    </div>
+    <div class="how-step">
+      <div class="how-step__num" aria-hidden="true">3</div>
+      <div>
+        <div class="how-step__label" data-i18n="how_step3_label">Check</div>
+        <div class="how-step__desc" data-i18n="how_step3_desc">Mark each document as Available or Missing</div>
+      </div>
+    </div>
+    <div class="how-step">
+      <div class="how-step__num" aria-hidden="true">4</div>
+      <div>
+        <div class="how-step__label" data-i18n="how_step4_label">Resolve</div>
+        <div class="how-step__desc" data-i18n="how_step4_desc">View step-by-step guides to obtain missing documents</div>
+      </div>
+    </div>
+    <div class="how-step">
+      <div class="how-step__num" aria-hidden="true">5</div>
+      <div>
+        <div class="how-step__label" data-i18n="how_step5_label">Ready!</div>
+        <div class="how-step__desc" data-i18n="how_step5_desc">Get the "You're Ready to Apply" confirmation</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Services overview -->
+<section class="section">
+  <div class="container">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-3); margin-bottom:var(--space-6);">
+      <h2 style="margin:0;" data-i18n="all_services">All Services</h2>
+      <div id="home-state-filter" style="display:flex; align-items:center; gap:var(--space-2);">
+        <span style="font-size:var(--font-size-sm); color:var(--grey);" data-i18n="filter_by_state">Filter by State:</span>
+        <div id="home-state-select-wrap"></div>
+      </div>
+    </div>
+    <div id="services-grid" style="display:grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap:var(--space-4);">
+      <!-- Populated by JS -->
+      <div class="skeleton skeleton-line" style="height:100px;"></div>
+      <div class="skeleton skeleton-line" style="height:100px;"></div>
+      <div class="skeleton skeleton-line" style="height:100px;"></div>
+      <div class="skeleton skeleton-line" style="height:100px;"></div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}

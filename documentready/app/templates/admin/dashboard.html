@@ -1,0 +1,199 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Dashboard Overview — DocumentReady Admin{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin: var(--space-6) 0 var(--space-4) 0;">
+  <div>
+    <h1 style="font-size:var(--font-size-2xl); margin:0;">System Overview</h1>
+    <p style="color:var(--grey); margin:4px 0 0 0; font-size:var(--font-size-sm);">
+      Official government source monitoring &amp; verification health status.
+    </p>
+  </div>
+  <div style="display:flex; gap:var(--space-3);">
+    <form method="POST" action="{{ url_for('admin.sync_seed_data') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button type="submit" class="btn btn--outline btn--sm" onclick="return confirm('Re-synchronize database with seed data? This is idempotent.');">
+        ↻ Sync Seed Data
+      </button>
+    </form>
+    <a href="{{ url_for('admin.sources_view') }}" class="btn btn--primary btn--sm">
+      + Manage Sources
+    </a>
+  </div>
+</div>
+
+<!-- Key Stat Cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-label">Monitored Sources</div>
+    <div class="stat-val">{{ stats.sources_total }}</div>
+    <div style="font-size:12px; color:var(--grey); margin-top:4px;">
+      <span style="color:#2E8B57; font-weight:600;">{{ stats.sources_enabled }} active</span>
+      {% if stats.sources_failed > 0 %}
+      &bull; <span style="color:#C8701A; font-weight:600;">{{ stats.sources_failed }} failing</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Pending Verification</div>
+    <div class="stat-val" style="color: {% if stats.pending_changes_count > 0 %}#C8701A{% else %}var(--navy){% endif %};">
+      {{ stats.pending_changes_count }}
+    </div>
+    <div style="font-size:12px; color:var(--grey); margin-top:4px;">
+      <a href="{{ url_for('admin.changes_view') }}" style="color:var(--teal); font-weight:600;">Review proposals &rarr;</a>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Active Services</div>
+    <div class="stat-val">{{ stats.services_count }}</div>
+    <div style="font-size:12px; color:var(--grey); margin-top:4px;">
+      Maharashtra &amp; Central Schemes
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Documents &amp; Guides</div>
+    <div class="stat-val">{{ stats.docs_count }} / {{ stats.guides_count }}</div>
+    <div style="font-size:12px; color:var(--grey); margin-top:4px;">
+      Prerequisite DAG mapped
+    </div>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns: 2fr 1fr; gap:var(--space-6); align-items:start;">
+  <!-- Left column: Pending changes & Monitored Sources -->
+  <div>
+    <!-- Pending Changes -->
+    <div style="background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-4); margin-bottom:var(--space-6);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4);">
+        <h3 style="margin:0; font-size:var(--font-size-md);">Pending Change Proposals</h3>
+        <a href="{{ url_for('admin.changes_view') }}" style="font-size:var(--font-size-xs); color:var(--teal);">View All</a>
+      </div>
+
+      {% if pending_changes %}
+      <div class="table-responsive" style="margin-bottom:0; border:none;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Target</th>
+              <th>Type</th>
+              <th>Summary</th>
+              <th>Detected</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for chg in pending_changes %}
+            <tr>
+              <td><strong>{{ chg.target_id }}</strong></td>
+              <td><span class="admin-badge badge-info">{{ chg.change_type }}</span></td>
+              <td style="max-width:280px;">{{ chg.summary }}</td>
+              <td style="font-size:11px; color:var(--grey);">{{ chg.detected_at.strftime('%d %b, %H:%M') if chg.detected_at else '—' }}</td>
+              <td>
+                <a href="{{ url_for('admin.changes_view') }}" class="btn btn--outline btn--sm" style="padding:2px 8px; font-size:11px;">Inspect</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p style="color:var(--grey); font-size:var(--font-size-sm); margin:0;">
+        No pending changes awaiting review. All monitored government sources are aligned with published requirements.
+      </p>
+      {% endif %}
+    </div>
+
+    <!-- Monitored Sources Health -->
+    <div style="background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-4);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4);">
+        <h3 style="margin:0; font-size:var(--font-size-md);">Official Government Sources</h3>
+        <a href="{{ url_for('admin.sources_view') }}" style="font-size:var(--font-size-xs); color:var(--teal);">Manage Sources</a>
+      </div>
+
+      <div class="table-responsive" style="margin-bottom:0; border:none;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Jurisdiction</th>
+              <th>Status</th>
+              <th>Last Check</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for src in sources %}
+            <tr>
+              <td>
+                <div style="font-weight:600;">{{ src.name }}</div>
+                <div style="font-size:11px; color:var(--grey);">{{ src.department }}</div>
+              </td>
+              <td><span class="admin-badge badge-info">{{ src.jurisdiction }}</span></td>
+              <td>
+                {% if not src.enabled %}
+                <span class="admin-badge badge-warning">Disabled</span>
+                {% elif src.consecutive_failures > 0 %}
+                <span class="admin-badge badge-danger">Failing ({{ src.consecutive_failures }})</span>
+                {% else %}
+                <span class="admin-badge badge-success">Healthy</span>
+                {% endif %}
+              </td>
+              <td style="font-size:12px; color:var(--grey);">
+                {{ src.last_successful_check.strftime('%d %b, %H:%M') if src.last_successful_check else 'Never' }}
+              </td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.check_source_now', source_id=src.id) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="btn btn--outline btn--sm" style="padding:2px 8px; font-size:11px;" title="Execute check immediately">
+                    ▶ Check Now
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: Recent Audit Log & Activity -->
+  <div>
+    <div style="background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-4); margin-bottom:var(--space-6);">
+      <h3 style="margin:0 0 var(--space-4) 0; font-size:var(--font-size-md);">Recent Audit Trail</h3>
+      {% if recent_audits %}
+      <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+        {% for a in recent_audits %}
+        <div style="font-size:var(--font-size-xs); border-bottom:1px solid #f0f0f0; padding-bottom:6px;">
+          <div style="display:flex; justify-content:space-between;">
+            <strong style="color:var(--ink);">{{ a.event_type }}</strong>
+            <span style="color:var(--grey); font-size:10px;">{{ a.timestamp.strftime('%H:%M:%S') if a.timestamp else '' }}</span>
+          </div>
+          <div style="color:var(--grey);">Actor: {{ a.actor }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="margin-top:var(--space-3); text-align:right;">
+        <a href="{{ url_for('admin.logs_view') }}" style="font-size:var(--font-size-xs); color:var(--teal);">View full audit log &rarr;</a>
+      </div>
+      {% else %}
+      <p style="color:var(--grey); font-size:12px; margin:0;">No audit events logged yet.</p>
+      {% endif %}
+    </div>
+
+    <div style="background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-4);">
+      <h3 style="margin:0 0 var(--space-3) 0; font-size:var(--font-size-md);">Monitoring Policy</h3>
+      <p style="font-size:12px; color:var(--grey); line-height:1.5; margin:0 0 10px 0;">
+        All checks follow SSRF protections, conditional HTTP headers, and SHA256 content normalization. Proposed changes enter the human review queue.
+      </p>
+      <div style="font-size:11px; background:#F8FAFC; padding:8px; border-radius:var(--radius-sm); color:#475569;">
+        <strong>Safety Guard:</strong> Auto-publication is restricted to high-confidence verifiable changes with corroborating evidence.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

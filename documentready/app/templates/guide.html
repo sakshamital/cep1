@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}How to Get {{ document.name }} — DocumentReady{% endblock %}
+{% block meta_description %}Step-by-step guide to obtain {{ document.name }}, including required documents and procedure.{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div class="container">
+    <a href="javascript:history.back()" style="color:rgba(255,255,255,0.7); font-size:var(--font-size-sm); display:inline-block; margin-bottom:var(--space-3);">← Back</a>
+    <div style="display:flex; align-items:center; gap:var(--space-3); flex-wrap:wrap; margin-bottom:var(--space-3);">
+      <h1 style="margin:0;">How to Obtain: {{ document.name }}</h1>
+      {% if guide.verified %}
+      <span class="badge" style="background:#2E8B57; color:#fff; font-weight:600;">✓ Verified Official Guide</span>
+      {% else %}
+      <span class="badge badge--unverified">⚠ Pending Verification</span>
+      {% endif %}
+    </div>
+    <div style="display:flex; gap:var(--space-2); flex-wrap:wrap;">
+      <span class="badge badge--kind">{{ document.kind }}</span>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div style="display:grid; grid-template-columns:1fr 280px; gap:var(--space-8); align-items:start;">
+      <div>
+
+        {% if guide.verified %}
+        <div class="card" style="margin-bottom:var(--space-5); padding:var(--space-3) var(--space-5); background:#F0FDF4; border:1px solid #BBF7D0; border-radius:var(--radius); display:flex; align-items:center; gap:var(--space-3);">
+          <span style="color:#15803D; font-weight:bold; font-size:16px;">✓</span>
+          <span style="font-size:var(--font-size-sm); color:#166534;"><strong>Verified Official Procedure:</strong> Standard steps confirmed with competent issuing authorities and state portals.</span>
+        </div>
+        {% endif %}
+
+        <!-- What it is -->
+        <div class="card" style="margin-bottom:var(--space-5);">
+          <h2 class="card__title">What it is</h2>
+          <p>{{ guide.what_it_is }}</p>
+        </div>
+
+        <!-- Documents required -->
+        <div class="card" style="margin-bottom:var(--space-5);">
+          <h2 class="card__title">Documents You Need</h2>
+          {% if prerequisites %}
+          <p style="font-size:var(--font-size-sm); color:var(--grey); margin-bottom:var(--space-4);">
+            These are prerequisites required to obtain {{ document.name }}:
+          </p>
+          <div style="display:flex; flex-direction:column; gap:var(--space-2); margin-bottom:var(--space-5);">
+            {% for prereq in prerequisites %}
+            <a href="{{ url_for('pages.guide', doc_id=prereq.id) }}" class="prereq-chip" style="text-decoration:none;">
+              <span class="prereq-chip__name">{{ prereq.name }}</span>
+              <span class="badge badge--kind">{{ prereq.kind }}</span>
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if guide.documents_required %}
+          <h3 style="font-size:var(--font-size-sm); color:var(--grey); margin-bottom:var(--space-3);">Full document list:</h3>
+          <ul style="list-style:disc; padding-left:var(--space-5); display:flex; flex-direction:column; gap:var(--space-2);">
+            {% for doc_req in guide.documents_required %}
+            <li style="font-size:var(--font-size-sm);">{{ doc_req }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+
+        <!-- Procedure -->
+        <div class="card" style="margin-bottom:var(--space-5);">
+          <h2 class="card__title">Step-by-Step Procedure</h2>
+          <div class="app-steps">
+            {% for step in guide.procedure_steps %}
+            <div class="app-step">
+              <div class="app-step__num">{{ loop.index }}</div>
+              <div class="app-step__text">{{ step }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Where to apply -->
+        <div class="card" style="margin-bottom:var(--space-5);">
+          <h2 class="card__title">Where / How to Apply</h2>
+          <p>{{ guide.where_how_to_apply }}</p>
+          {% if guide.official_link %}
+          <a href="{{ guide.official_link }}" target="_blank" rel="noopener noreferrer" class="btn btn--teal" style="margin-top:var(--space-3); display:inline-flex;">
+            Visit Official Portal ↗
+          </a>
+          {% endif %}
+        </div>
+
+        <!-- Precautions -->
+        {% if guide.precautions %}
+        <div class="card">
+          <h2 class="card__title">Important Precautions</h2>
+          <ul style="display:flex; flex-direction:column; gap:var(--space-3);">
+            {% for p in guide.precautions %}
+            <li style="display:flex; gap:var(--space-2); font-size:var(--font-size-sm);">
+              <span style="color:var(--amber); flex-shrink:0;">⚠</span>
+              <span>{{ p }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Sidebar -->
+      <aside>
+        <div class="card card--elevated" style="position:sticky; top:80px;">
+          <h3 class="card__title">Quick Info</h3>
+          <dl style="display:flex; flex-direction:column; gap:var(--space-3);">
+            <div>
+              <dt style="font-size:var(--font-size-xs); color:var(--grey); text-transform:uppercase; letter-spacing:0.5px;">Document Type</dt>
+              <dd style="font-weight:600; text-transform:capitalize;">{{ document.kind }}</dd>
+            </div>
+            <div>
+              <dt style="font-size:var(--font-size-xs); color:var(--grey); text-transform:uppercase; letter-spacing:0.5px;">Issuing Authority</dt>
+              <dd style="font-weight:600; font-size:var(--font-size-sm);">{{ document.issuing_authority }}</dd>
+            </div>
+          </dl>
+
+          <div class="divider"></div>
+
+          <div class="unverified-notice" style="margin:0; padding:var(--space-3);">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span style="font-size:var(--font-size-xs);">{{ disclaimer }}</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}

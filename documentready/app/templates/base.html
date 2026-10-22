@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="{% block meta_description %}DocumentReady — Find out exactly which documents you need before applying for any government service, certificate or scheme.{% endblock %}" />
+  <title>{% block title %}DocumentReady — Know Before You Go{% endblock %}</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}" />
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Skip link -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Aria live region -->
+  <div id="aria-live" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Header -->
+  <header class="site-header" role="banner">
+    <div class="container">
+      <div class="site-header__inner">
+        <a href="{{ url_for('pages.index') }}" class="site-logo" aria-label="DocumentReady home">
+          <div class="site-logo__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          </div>
+          <div>
+            <div class="site-logo__name" data-i18n="site_name">DocumentReady</div>
+            <div class="site-logo__tagline" data-i18n="site_tagline">Know before you go</div>
+          </div>
+        </a>
+
+        <nav class="site-nav" aria-label="Main navigation">
+          <a href="{{ url_for('pages.index') }}" {% if request.endpoint == 'pages.index' %}class="active" aria-current="page"{% endif %} data-i18n="nav_home">Home</a>
+          <a href="{{ url_for('pages.updates') }}" {% if request.endpoint == 'pages.updates' %}class="active" aria-current="page"{% endif %} data-i18n="nav_updates">Updates</a>
+          <a href="{{ url_for('pages.about') }}" {% if request.endpoint == 'pages.about' %}class="active" aria-current="page"{% endif %} data-i18n="nav_about">About</a>
+          <a href="{{ url_for('admin.dashboard') }}" style="color:var(--amber); font-weight:600;" data-i18n="nav_admin">Admin</a>
+        </nav>
+
+        <!-- Language & State selectors -->
+        <div class="header-controls">
+          <!-- State selector -->
+          <div id="state-selector"></div>
+
+          <!-- Language selector -->
+          <div class="lang-selector" id="lang-selector">
+            <button class="lang-selector__btn" id="lang-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Change language">
+              <span class="lang-selector__icon" aria-hidden="true">🌐</span>
+              <span id="lang-btn-label">EN</span>
+              <span class="lang-selector__arrow" aria-hidden="true">▾</span>
+            </button>
+            <ul class="lang-selector__menu" id="lang-menu" role="listbox" hidden>
+              <li role="option" data-lang="en" aria-selected="true">English</li>
+              <li role="option" data-lang="hi" aria-selected="false">हिन्दी</li>
+              <li role="option" data-lang="mr" aria-selected="false">मराठी</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main id="main-content" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <div class="site-footer__inner">
+        <div class="footer-disclaimer" role="note">
+          <strong data-i18n="footer_disclaimer_title">⚠ Disclaimer:</strong> <span data-i18n="footer_disclaimer">{{ disclaimer }}</span>
+        </div>
+        <p>
+          <strong>DocumentReady</strong> <span data-i18n="footer_about_line">is an independent information and readiness-support platform.
+          It is <strong>not an official government portal</strong> and has no affiliation with any government authority.</span>
+        </p>
+        <p style="font-size:12px; opacity:0.6;">
+          <span data-i18n="footer_project">A college UG Community Engagement Project (AI &amp; Data Science, 2026–27)</span> &nbsp;|&nbsp;
+          <span data-i18n="footer_verified_note">Checklists verified against official government portals.</span> &nbsp;|&nbsp;
+          <a href="{{ url_for('pages.about') }}" data-i18n="footer_about_link">About this project</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container" aria-live="assertive" aria-atomic="false"></div>
+
+  <!-- JS modules -->
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

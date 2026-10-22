@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Official Government Updates &amp; Notifications — DocumentReady{% endblock %}
+{% block meta_description %}Recent verified changes to government document checklists, fees, and application procedures.{% endblock %}
+
+{% block content %}
+<section class="page-header" style="padding-bottom:var(--space-8);">
+  <div class="container">
+    <div style="margin-bottom:var(--space-3);">
+      <a href="{{ url_for('pages.index') }}" style="color:rgba(255,255,255,0.7); font-size:var(--font-size-sm);">
+        ← Back to search
+      </a>
+    </div>
+    <h1 style="margin:0 0 var(--space-2) 0;">Verified Government Updates</h1>
+    <p style="color:rgba(255,255,255,0.8); margin:0; font-size:var(--font-size-md);">
+      Evidence-backed notifications from official Indian Central and Maharashtra State Government sources.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container" style="max-width:840px;">
+    {% if notifications %}
+    <div style="display:flex; flex-direction:column; gap:var(--space-4);">
+      {% for n in notifications %}
+      <div class="card card--elevated" style="padding:var(--space-6); border-left:4px solid var(--teal);">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:var(--space-2);">
+          <h2 style="font-size:var(--font-size-lg); margin:0; color:var(--ink);">{{ n.title }}</h2>
+          <span class="badge" style="background:#EAF1F8; color:var(--navy); font-size:11px; font-weight:600;">
+            {{ n.published_at.strftime('%d %b %Y') if n.published_at else '' }}
+          </span>
+        </div>
+        <p style="font-size:var(--font-size-md); color:#334155; margin:var(--space-2) 0;">
+          {{ n.message }}
+        </p>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:var(--space-4); font-size:var(--font-size-sm);">
+          {% if n.service_id %}
+          <a href="{{ url_for('pages.service', service_id=n.service_id) }}" class="btn btn--outline btn--sm">
+            View Updated Checklist &rarr;
+          </a>
+          {% else %}
+          <span></span>
+          {% endif %}
+
+          {% if n.source_url %}
+          <a href="{{ n.source_url }}" target="_blank" rel="noopener noreferrer" style="color:var(--teal); font-size:12px;">
+            Official Source Link ↗
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="card" style="text-align:center; padding:var(--space-12);">
+      <h3 style="color:var(--grey); margin-bottom:8px;">No published updates yet</h3>
+      <p style="color:var(--grey); font-size:var(--font-size-sm); margin:0;">
+        All services are currently verified against active portals. As new official government notifications and policy circulars are published, updates will appear here in real time.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

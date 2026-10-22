@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Admin Console — DocumentReady{% endblock %}</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}" />
+
+  <style>
+    .admin-nav { display: flex; gap: var(--space-4); align-items: center; }
+    .admin-nav a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: var(--font-size-sm); font-weight: 500; padding: 6px 12px; border-radius: var(--radius-sm); transition: background 0.15s; }
+    .admin-nav a:hover, .admin-nav a.active { background: rgba(255,255,255,0.15); color: #fff; }
+    .admin-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .badge-success { background: #E4F4EA; color: #1e7044; }
+    .badge-warning { background: #FDF0E0; color: #a3560f; }
+    .badge-danger { background: #FDEDED; color: #b71c1c; }
+    .badge-info { background: #EAF1F8; color: #1F4E79; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6); }
+    .stat-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-4); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .stat-val { font-size: var(--font-size-2xl); font-weight: 700; color: var(--navy); margin-top: 4px; }
+    .stat-label { font-size: var(--font-size-xs); color: var(--grey); text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-responsive { width: 100%; overflow-x: auto; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: var(--space-6); }
+    table.data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: var(--font-size-sm); }
+    table.data-table th, table.data-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    table.data-table th { background: #F8FAFC; color: var(--ink); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    table.data-table tr:hover td { background: #FAFCFE; }
+    .evidence-box { background: #F8FAFC; border-left: 3px solid var(--teal); padding: 10px 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-family: monospace; font-size: 12px; color: #2C3E50; margin: 8px 0; word-break: break-word; }
+    .flash-alert { padding: 12px 16px; border-radius: var(--radius); margin-bottom: var(--space-4); font-size: var(--font-size-sm); display: flex; align-items: center; justify-content: space-between; }
+    .flash-success { background: #E4F4EA; color: #1B5E20; border: 1px solid #A5D6A7; }
+    .flash-error { background: #FFEBEE; color: #B71C1C; border: 1px solid #FFCDD2; }
+    .flash-info { background: #E3F2FD; color: #0D47A1; border: 1px solid #BBDEFB; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body style="background: #F4F7FA;">
+
+  <!-- Admin Header -->
+  <header style="background: var(--ink); padding: var(--space-3) 0; border-bottom: 2px solid var(--teal);">
+    <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:var(--space-4);">
+        <a href="{{ url_for('admin.dashboard') }}" style="display:flex; align-items:center; gap:8px; text-decoration:none;">
+          <span style="font-weight:700; color:#fff; font-size:var(--font-size-md);">DocumentReady</span>
+          <span class="admin-badge badge-warning" style="font-size:10px;">Admin Console</span>
+        </a>
+
+        {% if session.get('user_id') %}
+        <nav class="admin-nav">
+          <a href="{{ url_for('admin.dashboard') }}" {% if request.endpoint == 'admin.dashboard' %}class="active"{% endif %}>Overview</a>
+          <a href="{{ url_for('admin.sources_view') }}" {% if request.endpoint and 'sources' in request.endpoint %}class="active"{% endif %}>Source Registry</a>
+          <a href="{{ url_for('admin.changes_view') }}" {% if request.endpoint and 'changes' in request.endpoint %}class="active"{% endif %}>Verification Queue</a>
+          <a href="{{ url_for('admin.history_view') }}" {% if request.endpoint and 'history' in request.endpoint %}class="active"{% endif %}>Version History</a>
+          <a href="{{ url_for('admin.logs_view') }}" {% if request.endpoint and 'logs' in request.endpoint %}class="active"{% endif %}>Audit Trail</a>
+        </nav>
+        {% endif %}
+      </div>
+
+      <div style="display:flex; align-items:center; gap:var(--space-3);">
+        <a href="{{ url_for('pages.index') }}" target="_blank" style="color:rgba(255,255,255,0.7); font-size:var(--font-size-xs); text-decoration:none;">
+          ↗ Public App
+        </a>
+        {% if session.get('user_id') %}
+        <span style="color:rgba(255,255,255,0.6); font-size:12px;">|</span>
+        <span style="color:#fff; font-size:var(--font-size-xs);">👤 {{ session.get('username') }}</span>
+        <form method="POST" action="{{ url_for('admin.logout_view') }}" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="btn btn--ghost btn--sm" style="color:#fff; padding:4px 8px; font-size:11px;">Sign Out</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Flash messages -->
+  <div class="container" style="margin-top:var(--space-4);">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-alert flash-{{ category }}" role="alert">
+            <span>{{ message }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Admin Body -->
+  <main class="container" style="padding-bottom:var(--space-12); min-height:80vh;">
+    {% block admin_content %}{% endblock %}
+  </main>
+
+  <footer style="background:#fff; border-top:1px solid var(--line); padding:var(--space-4) 0; font-size:12px; color:var(--grey); text-align:center;">
+    DocumentReady Government Information Monitoring System &bull; Production-Ready Integration &bull; 2026
+  </footer>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

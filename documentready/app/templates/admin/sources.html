@@ -1,0 +1,170 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Source Registry — DocumentReady Admin{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin: var(--space-6) 0 var(--space-4) 0;">
+  <div>
+    <h1 style="font-size:var(--font-size-2xl); margin:0;">Official Source Registry</h1>
+    <p style="color:var(--grey); margin:4px 0 0 0; font-size:var(--font-size-sm);">
+      Explicitly permitted government portals, notification circulars, and monitoring adapters.
+    </p>
+  </div>
+  <button class="btn btn--primary btn--sm" onclick="document.getElementById('add-source-card').scrollIntoView({behavior:'smooth'});">
+    + Add Source
+  </button>
+</div>
+
+<!-- Sources Table -->
+<div class="table-responsive">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Source Name &amp; Dept</th>
+        <th>Jurisdiction</th>
+        <th>Type / Adapter</th>
+        <th>Monitored URL</th>
+        <th>Status &amp; Errors</th>
+        <th>Last Checked</th>
+        <th>Fingerprint</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for src in sources %}
+      <tr>
+        <td>
+          <div style="font-weight:600; color:var(--ink);">{{ src.name }}</div>
+          <div style="font-size:11px; color:var(--grey);">{{ src.department }}</div>
+          <div style="font-size:10px; color:var(--grey); margin-top:2px;">ID: <code>{{ src.id }}</code></div>
+        </td>
+        <td><span class="admin-badge badge-info">{{ src.jurisdiction }}</span></td>
+        <td>
+          <span class="admin-badge badge-info">{{ src.source_type }}</span>
+          <div style="font-size:11px; color:var(--grey); margin-top:2px;">{{ src.adapter }}</div>
+        </td>
+        <td style="max-width:240px; word-break:break-all; font-size:12px;">
+          <a href="{{ src.monitored_url }}" target="_blank" rel="noopener noreferrer" style="color:var(--teal);">
+            {{ src.monitored_url }}
+          </a>
+        </td>
+        <td>
+          {% if not src.enabled %}
+          <span class="admin-badge badge-warning">Disabled</span>
+          {% elif src.consecutive_failures > 0 %}
+          <span class="admin-badge badge-danger">Fail ({{ src.consecutive_failures }})</span>
+          <div style="font-size:10px; color:#b71c1c; margin-top:2px; max-width:140px;">{{ src.last_error_message }}</div>
+          {% else %}
+          <span class="admin-badge badge-success">HTTP {{ src.last_http_status or 200 }} OK</span>
+          {% endif %}
+        </td>
+        <td style="font-size:11px; color:var(--grey);">
+          {{ src.last_successful_check.strftime('%d %b, %H:%M') if src.last_successful_check else 'Never' }}
+        </td>
+        <td style="font-family:monospace; font-size:10px; color:var(--grey);">
+          {% if src.current_fingerprint %}{{ src.current_fingerprint[:10] }}...{% else %}None{% endif %}
+        </td>
+        <td>
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">
+            <form method="POST" action="{{ url_for('admin.check_source_now', source_id=src.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn btn--outline btn--sm" style="padding:2px 8px; font-size:11px;" title="Run check now">
+                Check
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.toggle_source', source_id=src.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn btn--ghost btn--sm" style="padding:2px 8px; font-size:11px;">
+                {{ "Disable" if src.enabled else "Enable" }}
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.delete_source', source_id=src.id) }}" onsubmit="return confirm('Delete official source \'{{ src.name }}\'? All fetch history for this source will be removed.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn btn--outline btn--sm" style="padding:2px 8px; font-size:11px; color:#b71c1c; border-color:#FFCDD2;" title="Delete source">
+                Delete
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Source Form -->
+<div class="card card--elevated" id="add-source-card" style="margin-top:var(--space-8); padding:var(--space-6);">
+  <h3 style="margin-top:0; margin-bottom:var(--space-4);">Add Permitted Official Government Source</h3>
+  <form method="POST" action="{{ url_for('admin.add_source') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-4); margin-bottom:var(--space-4);">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Unique Source ID</label>
+        <input type="text" name="id" required class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);" placeholder="src_dept_name" />
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Official Source Name</label>
+        <input type="text" name="name" required class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);" placeholder="Maharashtra Revenue Dept Portal" />
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-4); margin-bottom:var(--space-4);">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Department / Issuing Authority</label>
+        <input type="text" name="department" class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);" placeholder="Revenue & Forest Department" />
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Jurisdiction</label>
+        <select name="jurisdiction" class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);">
+          <option value="Maharashtra" selected>Maharashtra</option>
+          <option value="Central">Central (Government of India)</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:var(--space-4);">
+      <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Monitored URL (Protected by SSRF Shield)</label>
+      <input type="url" name="monitored_url" required class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);" placeholder="https://aaplesarkar.mahaonline.gov.in/..." />
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:var(--space-4); margin-bottom:var(--space-4);">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Source Type</label>
+        <select name="source_type" class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);">
+          <option value="html" selected>Official HTML Page</option>
+          <option value="pdf">Official PDF / Circular</option>
+          <option value="json_api">Authorized JSON API</option>
+          <option value="rss">RSS / Atom Feed</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Adapter</label>
+        <select name="adapter" class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);">
+          <option value="generic_html" selected>Generic HTML Extractor</option>
+          <option value="aaplesarkar_table">Aaple Sarkar Table Adapter</option>
+          <option value="pdf_circular">PDF Circular Processor</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Check Frequency (Minutes)</label>
+        <input type="number" name="check_frequency_minutes" value="720" min="60" class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);" />
+      </div>
+    </div>
+
+    <div style="margin-bottom:var(--space-6);">
+      <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Associated Services (select relevant):</label>
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:6px; max-height:160px; overflow-y:auto; padding:8px; border:1px solid var(--line); border-radius:var(--radius-sm); background:#fff;">
+        {% for svc in services %}
+        <label style="font-size:12px; display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" name="associated_service_ids" value="{{ svc.id }}" />
+          {{ svc.name }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn--primary">Save &amp; Register Source</button>
+  </form>
+</div>
+{% endblock %}
