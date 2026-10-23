@@ -29,10 +29,12 @@ COPY . /app/
 RUN sed -i 's/\r$//' /app/docker-entrypoint.sh \
     && chmod +x /app/docker-entrypoint.sh
 
-# Create non-root system user and prepare writable instance directory
-RUN groupadd -r appuser && useradd -r -g appuser appuser \
+# Create non-root system user with home directory and prepare writable instance directory
+RUN groupadd -r appuser && useradd -r -m -g appuser appuser \
     && mkdir -p /app/instance /app/instance/downloads \
-    && chown -R appuser:appuser /app
+    && chown -R appuser:appuser /app /home/appuser
+
+ENV HOME=/home/appuser
 
 # Switch to non-root user
 USER appuser

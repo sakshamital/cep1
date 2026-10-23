@@ -99,12 +99,38 @@ def get_db_session() -> Generator[Session, None, None]:
         session.close()
 
 
+def _run_schema_migrations(engine):
+    """Automatically add any missing columns to existing database tables (Postgres & SQLite).
+
+    SQLAlchemy's create_all() only creates missing *tables*, but does not alter
+    existing tables when new columns are added to models. This migration ensures
+    zero-downtime, automatic schema updates on Render deployments.
+    """
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    if "sources" in inspector.get_table_names():
+        columns = {col["name"] for col in inspector.get_columns("sources")}
+        with engine.connect() as conn:
+            if "next_scheduled_check" not in columns:
+                logger.info("Migrating schema: adding sources.next_scheduled_check...")
+                conn.execute(text("ALTER TABLE sources ADD COLUMN next_scheduled_check TIMESTAMP;"))
+            if "is_checking" not in columns:
+                logger.info("Migrating schema: adding sources.is_checking...")
+                conn.execute(text("ALTER TABLE sources ADD COLUMN is_checking BOOLEAN DEFAULT FALSE;"))
+            if "checking_worker_id" not in columns:
+                logger.info("Migrating schema: adding sources.checking_worker_id...")
+                conn.execute(text("ALTER TABLE sources ADD COLUMN checking_worker_id VARCHAR(128);"))
+            conn.commit()
+
+
 def init_db(app=None, uri: Optional[str] = None, seed: bool = True):
     """Create all database tables and optionally seed data idempotently."""
     db_uri = uri or (app.config.get("SQLALCHEMY_DATABASE_URI") if app else None)
     engine = get_engine(db_uri)
     Base.metadata.create_all(engine)
-    logger.info("Database tables initialized successfully.")
+    _run_schema_migrations(engine)
+    logger.info("Database tables and schema migrations initialized successfully.")
 
     if seed:
         with get_db_session() as session:
