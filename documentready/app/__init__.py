@@ -91,4 +91,12 @@ def create_app(config_name: str = "development") -> Flask:
         except Exception as exc:
             logger.warning("Could not auto-initialize database on startup: %s", exc)
 
+        # ── Background Government Source Monitor Scheduler ───────────────────
+        if app.config.get("MONITOR_WORKER_ENABLED", True):
+            try:
+                from .services.scheduler import scheduler
+                scheduler.start()
+            except Exception as sch_exc:
+                logger.warning("Could not start background monitor scheduler: %s", sch_exc)
+
     return app

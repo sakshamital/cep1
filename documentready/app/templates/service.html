@@ -65,6 +65,12 @@
         </div>
       </div>
     </div>
+    {% if is_stale %}
+    <div class="card" style="margin-bottom:var(--space-6); padding:var(--space-3) var(--space-5); background:#FFFBEB; border:1px solid #FDE68A; border-radius:var(--radius); color:#92400E; font-size:var(--font-size-xs); display:flex; align-items:center; gap:var(--space-3);">
+      <span style="font-size:16px;">⏱</span>
+      <span><strong>Verification Notice:</strong> {{ stale_warning }} Always verify with the official issuing office before filing.</span>
+    </div>
+    {% endif %}
     {% else %}
     <div class="unverified-notice" role="alert">
       <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

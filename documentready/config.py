@@ -39,11 +39,18 @@ class Config:
 
     # Source Monitoring
     MONITOR_USER_AGENT: str = "DocumentReady-GovMonitor/1.0 (+https://documentready.gov.in/bot)"
-    MONITOR_REQUEST_TIMEOUT: int = int(os.environ.get("MONITOR_REQUEST_TIMEOUT", "15"))
-    MONITOR_MAX_RETRIES: int = 3
-    MONITOR_RATE_LIMIT_DELAY: float = 1.0  # seconds between requests to same domain
-    DOWNLOAD_MAX_PDF_BYTES: int = 15 * 1024 * 1024  # 15 MB limit
+    MONITOR_REQUEST_TIMEOUT: int = int(os.environ.get("MONITOR_REQUEST_TIMEOUT", "20"))
+    MONITOR_MAX_RETRIES: int = int(os.environ.get("MONITOR_MAX_RETRIES", "3"))
+    MONITOR_RATE_LIMIT_DELAY: float = float(os.environ.get("MONITOR_RATE_LIMIT_DELAY", "1.0"))  # seconds between requests to same domain
+    DOWNLOAD_MAX_PDF_BYTES: int = int(os.environ.get("DOWNLOAD_MAX_PDF_BYTES", str(15 * 1024 * 1024)))  # 15 MB limit
     DOWNLOAD_DIR: str = os.path.join(INSTANCE_DIR, "downloads")
+
+    # Automated Scheduling & Worker Controls
+    MONITOR_INTERVAL_HOURS: int = int(os.environ.get("MONITOR_INTERVAL_HOURS", "12"))
+    MONITOR_ENABLED: bool = os.environ.get("MONITOR_ENABLED", "True").lower() in ("true", "1", "yes")
+    MONITOR_WORKER_ENABLED: bool = os.environ.get("MONITOR_WORKER_ENABLED", "True").lower() in ("true", "1", "yes")
+    STALE_SOURCE_THRESHOLD_DAYS: int = int(os.environ.get("STALE_SOURCE_THRESHOLD_DAYS", "7"))
+    AUTO_PUBLISH_CONFIDENCE_THRESHOLD: float = float(os.environ.get("AUTO_PUBLISH_CONFIDENCE_THRESHOLD", "0.95"))
 
     # AI / LLM Integration (Optional)
     AI_PROVIDER: str = os.environ.get("AI_PROVIDER", "none")  # none, gemini, openai

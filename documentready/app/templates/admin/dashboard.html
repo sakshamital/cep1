@@ -11,9 +11,15 @@
     </p>
   </div>
   <div style="display:flex; gap:var(--space-3);">
+    <form method="POST" action="{{ url_for('admin.check_all_now') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button type="submit" class="btn btn--outline btn--sm" onclick="return confirm('Run immediate monitoring check across all enabled government sources?');">
+        ⚡ Check All Sources Now
+      </button>
+    </form>
     <form method="POST" action="{{ url_for('admin.sync_seed_data') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      <button type="submit" class="btn btn--outline btn--sm" onclick="return confirm('Re-synchronize database with seed data? This is idempotent.');">
+      <button type="submit" class="btn btn--ghost btn--sm" onclick="return confirm('Re-synchronize database with seed data? This is idempotent.');">
         ↻ Sync Seed Data
       </button>
     </form>

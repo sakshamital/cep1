@@ -26,6 +26,7 @@
         <th>Monitored URL</th>
         <th>Status &amp; Errors</th>
         <th>Last Checked</th>
+        <th>Next Scheduled</th>
         <th>Fingerprint</th>
         <th>Actions</th>
       </tr>
@@ -49,7 +50,9 @@
           </a>
         </td>
         <td>
-          {% if not src.enabled %}
+          {% if src.is_checking %}
+          <span class="admin-badge badge-warning">Checking...</span>
+          {% elif not src.enabled %}
           <span class="admin-badge badge-warning">Disabled</span>
           {% elif src.consecutive_failures > 0 %}
           <span class="admin-badge badge-danger">Fail ({{ src.consecutive_failures }})</span>
@@ -60,6 +63,9 @@
         </td>
         <td style="font-size:11px; color:var(--grey);">
           {{ src.last_successful_check.strftime('%d %b, %H:%M') if src.last_successful_check else 'Never' }}
+        </td>
+        <td style="font-size:11px; color:var(--grey);">
+          {{ src.next_scheduled_check.strftime('%d %b, %H:%M') if src.next_scheduled_check else 'Due on next loop' }}
         </td>
         <td style="font-family:monospace; font-size:10px; color:var(--grey);">
           {% if src.current_fingerprint %}{{ src.current_fingerprint[:10] }}...{% else %}None{% endif %}
@@ -148,7 +154,25 @@
       </div>
       <div>
         <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Check Frequency (Minutes)</label>
-        <input type="number" name="check_frequency_minutes" value="720" min="60" class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);" />
+        <input type="number" name="check_frequency_minutes" value="720" min="15" class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);" />
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-4); margin-bottom:var(--space-4);">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Verification Policy</label>
+        <select name="verification_policy" class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);">
+          <option value="manual_review" selected>Manual Review (All changes require admin sign-off)</option>
+          <option value="auto_publish_minor">Auto-Publish Minor (Auto-verify high-confidence URL/fee updates only)</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Monitoring Priority</label>
+        <select name="priority" class="search-input" style="padding-left:10px; width:100%; border-radius:var(--radius-sm);">
+          <option value="high" selected>High Priority (Direct citizen application portal)</option>
+          <option value="normal">Normal Priority</option>
+          <option value="low">Low Priority</option>
+        </select>
       </div>
     </div>
 

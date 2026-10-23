@@ -64,6 +64,33 @@ def check_single_source(source_id, force):
     status_color = "green" if res["status"] in ("unchanged", "changed") else "red"
     click.secho(f"[{res['status'].upper()}] {res['source_id']}: {res['message']}", fg=status_color)
 
+@monitor_cli.command("run-due")
+def run_due_monitors():
+    """Run monitoring check only on sources that are currently due."""
+    from app.services.monitoring import monitor_engine
+    click.echo("Checking due government sources...")
+    results = monitor_engine.check_due_sources()
+    if not results:
+        click.echo("No government sources are currently due for checking.")
+        return
+    for res in results:
+        status_color = "green" if res["status"] in ("unchanged", "changed") else "red"
+        click.secho(f"[{res['status'].upper()}] {res['source_id']}: {res['message']}", fg=status_color)
+    click.echo(f"Due checks complete. Processed {len(results)} sources.")
+
+
+@monitor_cli.command("run-worker")
+@click.option("--poll-interval", default=60, help="Interval in seconds between due-check loops")
+def run_monitor_worker(poll_interval):
+    """Run dedicated, persistent background worker loop for scheduled checks."""
+    from app.services.scheduler import BackgroundMonitorScheduler
+    worker = BackgroundMonitorScheduler(poll_interval_seconds=poll_interval)
+    click.echo(f"Starting dedicated monitor background worker (polling every {poll_interval}s)...")
+    try:
+        worker._run_loop()
+    except (KeyboardInterrupt, SystemExit):
+        click.echo("Worker terminated.")
+
 
 @db_cli.command("init")
 @click.option("--seed/--no-seed", default=True, help="Seed initial data from JSON")

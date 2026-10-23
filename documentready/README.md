@@ -124,6 +124,12 @@ DocumentReady includes dedicated CLI command groups for administration, database
 # Execute monitoring check across all enabled official sources once
 flask monitor run-all
 
+# Execute monitoring check only on sources currently due for their scheduled run
+flask monitor run-due
+
+# Run persistent dedicated background worker loop (e.g. for Render background worker service)
+flask monitor run-worker --poll-interval 60
+
 # Execute a monitoring check on a specific registered source ID
 flask monitor check src_aaplesarkar_caste_validity --force
 
@@ -133,6 +139,16 @@ flask admin create-user --username reviewer1 --role reviewer
 # Re-run idempotent database synchronization
 flask db-admin init
 ```
+
+### Background Scheduler & Worker Operation
+
+DocumentReady supports two production deployment models for scheduled monitoring:
+1. **Embedded In-Process Daemon**: Automatically enabled by default via `MONITOR_WORKER_ENABLED=True`. The scheduler runs as an unblocking background daemon thread that evaluates due sources periodically, recovers stale locks from previous crashes, and coordinates across multi-threaded workers.
+2. **Dedicated Render Background Worker**: For high-volume multi-instance clusters, spin up a background worker process running:
+   ```bash
+   flask monitor run-worker --poll-interval 60
+   ```
+   Or use a Render Cron Job calling `flask monitor run-due` every 6, 12, or 24 hours.
 
 ---
 

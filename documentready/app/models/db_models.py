@@ -367,6 +367,9 @@ class SourceRegistry(Base):
     last_http_status = Column(Integer, nullable=True)
     consecutive_failures = Column(Integer, default=0)
     last_error_message = Column(Text, nullable=True)
+    next_scheduled_check = Column(DateTime, nullable=True, index=True)
+    is_checking = Column(Boolean, default=False, index=True)
+    checking_worker_id = Column(String(128), nullable=True)
     created_at = Column(DateTime, default=utc_now)
 
     fetches = relationship("SourceFetchHistory", back_populates="source", cascade="all, delete-orphan", order_by="SourceFetchHistory.attempted_at.desc()")
@@ -414,6 +417,8 @@ class SourceRegistry(Base):
             "last_http_status": self.last_http_status,
             "consecutive_failures": self.consecutive_failures,
             "last_error_message": self.last_error_message,
+            "next_scheduled_check": self.next_scheduled_check.isoformat() if self.next_scheduled_check else None,
+            "is_checking": bool(self.is_checking),
         }
 
 

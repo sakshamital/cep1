@@ -60,6 +60,15 @@ def service(service_id: str):
     except Exception as e:
         logger.debug("Database query for service history bypassed: %s", e)
 
+    is_stale = False
+    stale_warning = None
+    if last_verified_at:
+        from datetime import datetime, timezone
+        age_days = (datetime.now(timezone.utc).replace(tzinfo=None) - last_verified_at).days
+        if age_days > 14:
+            is_stale = True
+            stale_warning = f"This checklist was last verified {age_days} days ago. An automated verification run is scheduled."
+
     return render_template(
         "service.html",
         service=svc,
@@ -67,6 +76,8 @@ def service(service_id: str):
         official_source_url=official_source_url,
         last_verified_at=last_verified_at,
         jurisdiction=jurisdiction,
+        is_stale=is_stale,
+        stale_warning=stale_warning,
     )
 
 

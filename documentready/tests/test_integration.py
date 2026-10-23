@@ -4,6 +4,7 @@ authentication, and admin panel. These tests require a running Flask app + datab
 """
 import pytest
 from unittest.mock import MagicMock, patch
+from datetime import timedelta
 from app.models.db_models import (
     DetectedChange,
     DocumentRecord,
@@ -17,6 +18,7 @@ from app.models.db_models import (
     StateRuleRecord,
     SynonymRecord,
     UserAccount,
+    utc_now,
 )
 from app.services.auth import authenticate_user, ensure_initial_admin, generate_csrf_token, validate_csrf_token
 from app.services.database import get_db_session, init_db, seed_initial_data, normalize_db_uri
@@ -214,6 +216,99 @@ def test_failed_source_does_not_erase_existing_data(app):
         assert src_after.consecutive_failures >= 1
         assert "Connection timed out" in src_after.last_error_message
         assert s.query(ServiceRecord).count() == initial_count
+        assert src_after.next_scheduled_check is not None
+
+
+def test_concurrency_lock_prevents_overlapping_checks(app):
+    init_db(app, seed=True)
+    engine = MonitoringEngine()
+    with get_db_session() as s:
+        src = s.query(SourceRegistry).first()
+        src_id = src.id
+        src.is_checking = True
+        src.checking_worker_id = "other_worker_999"
+        src.last_attempted_check = utc_now()
+
+    res = engine.check_source(src_id)
+    assert res["status"] == "skipped"
+    assert "already in progress" in res["message"]
+
+
+def test_due_sources_scheduler_check(app):
+    init_db(app, seed=True)
+    engine = MonitoringEngine()
+    now = utc_now()
+
+    with get_db_session() as s:
+        # Mark one source due, another not due
+        sources = s.query(SourceRegistry).all()
+        assert len(sources) >= 2
+        sources[0].next_scheduled_check = now - timedelta(hours=1)
+        sources[0].enabled = True
+        sources[1].next_scheduled_check = now + timedelta(hours=5)
+        sources[1].enabled = True
+        due_id = sources[0].id
+        not_due_id = sources[1].id
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 304
+    mock_resp.history = []
+
+    with patch("requests.get", return_value=mock_resp), \
+         patch("app.services.security_check.validate_and_resolve_url", return_value=("url", "1.2.3.4")):
+        results = engine.check_due_sources()
+        checked_ids = [r["source_id"] for r in results]
+        assert due_id in checked_ids
+        assert not_due_id not in checked_ids
+
+
+def test_stale_lock_recovery_on_startup(app):
+    from app.services.scheduler import scheduler
+    init_db(app, seed=True)
+    with get_db_session() as s:
+        src = s.query(SourceRegistry).first()
+        src.is_checking = True
+        src.checking_worker_id = "crashed_worker_123"
+
+    scheduler._cleanup_stale_locks()
+
+    with get_db_session() as s:
+        src_after = s.query(SourceRegistry).first()
+        assert src_after.is_checking is False
+        assert src_after.checking_worker_id is None
+
+
+def test_safe_auto_publishing_policy(app):
+    init_db(app, seed=True)
+    engine = MonitoringEngine()
+    with get_db_session() as s:
+        svc = s.query(ServiceRecord).first()
+        svc_id = svc.id
+        initial_ver = svc.version
+        src = s.query(SourceRegistry).first()
+        src.associated_service_ids = [svc_id]
+        src.verification_policy = "auto_publish_minor"
+        src_id = src.id
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {"Content-Type": "text/html"}
+    mock_resp.text = "<html><body>Official portal updated: https://aaplesarkar.mahaonline.gov.in/portal/apply</body></html>"
+    mock_resp.history = []
+
+    with patch("requests.get", return_value=mock_resp), \
+         patch("app.services.security_check.validate_and_resolve_url", return_value=("url", "1.2.3.4")):
+        res = engine.check_source(src_id)
+        assert res["status"] == "changed"
+        assert res["auto_published_count"] >= 1
+
+    with get_db_session() as s:
+        svc_after = s.query(ServiceRecord).filter_by(id=svc_id).first()
+        assert svc_after.version == initial_ver + 1
+        assert svc_after.verified is True
+        published_change = s.query(DetectedChange).filter_by(target_id=svc_id, status="published").first()
+        assert published_change is not None
+        assert published_change.reviewed_by == "auto_policy_engine"
 
 
 # ── Authentication & Admin ────────────────────────────────────────────────────

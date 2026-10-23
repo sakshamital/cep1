@@ -198,6 +198,9 @@ def add_source():
         flash(f"Security Alert: Destination blocked by SSRF shield ({e}).", "error")
         return redirect(url_for("admin.sources_view"))
 
+    verification_policy = request.form.get("verification_policy", "manual_review")
+    priority = request.form.get("priority", "normal")
+
     with get_db_session() as s:
         existing = s.query(SourceRegistry).filter_by(id=source_id).first()
         if existing:
@@ -214,6 +217,8 @@ def add_source():
             source_type=source_type,
             adapter=adapter,
             check_frequency_minutes=frequency,
+            verification_policy=verification_policy,
+            priority=priority,
             enabled=True,
         )
         src.associated_service_ids = selected_services
@@ -275,6 +280,17 @@ def check_source_now(source_id: str):
         flash(f"Check completed: {result['message']}", "info")
 
     return redirect(url_for("admin.sources_view"))
+
+
+@bp.route("/sources/check-all", methods=["POST"])
+@admin_required
+@csrf_protect
+def check_all_now():
+    results = monitor_engine.check_all_sources(force=True)
+    changed = sum(1 for r in results if r.get("status") == "changed")
+    errors = sum(1 for r in results if r.get("status") == "error")
+    flash(f"Batch check completed for {len(results)} sources: {changed} changes detected, {errors} errors.", "info")
+    return redirect(url_for("admin.dashboard"))
 
 
 # ── Change Verification Queue ─────────────────────────────────────────────────

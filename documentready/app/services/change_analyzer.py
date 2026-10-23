@@ -189,4 +189,66 @@ def compare_service_content(
                 )
                 break
 
+    # 4. Check for official deadline / application timeline announcements
+    deadline_pattern = re.compile(
+        r"(?:last date|deadline|submission date|extended up to|last date of submission|valid up to)\s*[:=-]?\s*([0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+,?\s+[0-9]{4}|[0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{2,4})",
+        re.IGNORECASE,
+    )
+    dl_match = deadline_pattern.search(raw_text)
+    if dl_match:
+        dl_text = dl_match.group(0)
+        start = max(0, dl_match.start() - 30)
+        end = min(len(raw_text), dl_match.end() + 40)
+        snippet = raw_text[start:end].strip()
+        detected_changes.append(
+            ChangeAnalysisResult(
+                change_type="modified_deadline",
+                summary=f"Official timeline or application deadline notice: {dl_text}",
+                previous_data={"timeline": existing_service_dict.get("application_info", {}).get("timeline", "")},
+                proposed_data={"timeline": dl_text, "notes": snippet},
+                evidence_quote=snippet,
+                evidence_source_url=source_url,
+                evidence_section=section_name,
+                confidence_score=0.90,
+            )
+        )
+
+    # 5. Check for major procedure shifts or ambiguous revision notices
+    procedure_keywords = ["new online portal launched", "physical submission discontinued", "mandatory e-kyc", "biometric authentication mandatory", "rule amended", "government resolution no"]
+    for pkw in procedure_keywords:
+        if pkw in text_lower:
+            idx = text_lower.find(pkw)
+            start = max(0, idx - 40)
+            end = min(len(raw_text), idx + len(pkw) + 60)
+            snippet = raw_text[start:end].strip()
+            detected_changes.append(
+                ChangeAnalysisResult(
+                    change_type="modified_procedure",
+                    summary=f"Official procedure update announced: '{pkw.title()}'",
+                    previous_data={"procedure": existing_service_dict.get("application_info", {}).get("steps", [])},
+                    proposed_data={"procedural_notice": snippet},
+                    evidence_quote=snippet,
+                    evidence_source_url=source_url,
+                    evidence_section=section_name,
+                    confidence_score=0.85,
+                )
+            )
+            break
+
+    # 6. Fallback for content change without matched specific rule: mark as ambiguous for manual review
+    if not detected_changes and len(raw_text.strip()) > 50:
+        snippet = raw_text[:200].strip()
+        detected_changes.append(
+            ChangeAnalysisResult(
+                change_type="ambiguous",
+                summary="Official source text updated with unclassified changes requiring administrator review",
+                previous_data={"status": "previous_version"},
+                proposed_data={"review_needed": True, "excerpt": snippet},
+                evidence_quote=snippet,
+                evidence_source_url=source_url,
+                evidence_section=section_name,
+                confidence_score=0.60,
+            )
+        )
+
     return detected_changes
