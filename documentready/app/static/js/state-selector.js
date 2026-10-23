@@ -4,7 +4,7 @@
  * Persists selected state in localStorage. Dispatches a custom event
  * 'statechange' on document when the state changes.
  */
-import { getLocale, onLocaleChange } from './i18n.js';
+import { getLocale, onLocaleChange, t } from './i18n.js';
 
 const STORAGE_KEY = 'documentready:state';
 const ALL_STATES_ID = '';
@@ -91,14 +91,12 @@ function _renderDropdown() {
 
     const select = document.createElement('select');
     select.className = 'state-selector__select';
-    select.setAttribute('aria-label', 'Select state');
+    select.setAttribute('aria-label', t('select_state'));
 
     // "All India" option
     const allOpt = document.createElement('option');
     allOpt.value = '';
-    if (locale === 'hi') allOpt.textContent = 'सम्पूर्ण भारत (All India)';
-    else if (locale === 'mr') allOpt.textContent = 'संपूर्ण भारत (All India)';
-    else allOpt.textContent = 'All India (Central / General)';
+    allOpt.textContent = t('all_states');
     select.appendChild(allOpt);
 
     // State options

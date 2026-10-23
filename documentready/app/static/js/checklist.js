@@ -129,7 +129,7 @@ async function loadChecklist() {
     updateProgress(getState());
     _updateStateInfoBanner();
   } catch (e) {
-    checklistEl.innerHTML = `<div class="inline-error">⚠ Failed to load checklist: ${e.message}. <button class="btn btn--ghost btn--sm" onclick="location.reload()">Retry</button></div>`;
+    checklistEl.innerHTML = `<div class="inline-error">⚠ ${t('search_load_error')} ${e.message}. <button class="btn btn--ghost btn--sm" onclick="location.reload()">${t('retry_btn')}</button></div>`;
   }
 }
 
@@ -188,7 +188,7 @@ export function renderChecklist(items, state) {
   checklistEl.innerHTML = '';
 
   if (!items || items.length === 0) {
-    checklistEl.innerHTML = '<p style="color:var(--grey);">No requirements found for this service.</p>';
+    checklistEl.innerHTML = `<p style="color:var(--grey);">${t('no_results')}</p>`;
     return;
   }
 
@@ -296,7 +296,7 @@ function createStatusToggle(docId, currentStatus) {
   const toggle = document.createElement('div');
   toggle.className = 'status-toggle';
   toggle.setAttribute('role', 'group');
-  toggle.setAttribute('aria-label', `Status for document`);
+  toggle.setAttribute('aria-label', t('status_label'));
 
   const buttons = [
     { label: t('status_unmarked'), value: 'unmarked', short: '—' },
@@ -334,7 +334,8 @@ function createStatusToggle(docId, currentStatus) {
           if (newBtn) newBtn.focus();
         }
       }
-      announce(`${value === 'unmarked' ? 'Cleared status for' : 'Marked'} document as ${value}.`);
+      announce(`${t('status_label')}: ${value === 'unmarked' ? t('status_unmarked') : value === 'available' ? t('status_available') : t('status_missing')}`);
+
     });
 
     toggle.appendChild(btn);
@@ -352,7 +353,7 @@ function createAnyOfGroup(item, state) {
   const group = document.createElement('div');
   group.className = `anyof-group ${anyAvailable ? 'anyof-group--satisfied' : ''}`;
   group.setAttribute('role', 'group');
-  group.setAttribute('aria-label', `Any one required — ${item.group}`);
+  group.setAttribute('aria-label', `${t('provide_any_one')} ${item.group}`);
   group.id = `anyof-${item.group}`;
 
   const title = document.createElement('div');

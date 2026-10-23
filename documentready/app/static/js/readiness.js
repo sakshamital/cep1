@@ -1,10 +1,12 @@
 /**
  * readiness.js — Verify button, readiness result rendering, obtain plan display.
+ * All UI strings go through t() for full internationalisation.
  */
 import { apiPost } from './api.js';
 import { getState } from './store.js';
 import { announce, showToast, scrollAndFocus } from './ui.js';
 import { openGuide } from './guide.js';
+import { t, tDoc, onLocaleChange } from './i18n.js';
 
 const verifyBtn = document.getElementById('verify-btn');
 const serviceId = window.__SERVICE_ID__;
@@ -13,10 +15,16 @@ if (verifyBtn && serviceId) {
   verifyBtn.addEventListener('click', handleVerify);
 }
 
+// Re-render last result on locale change
+let _lastResult = null;
+onLocaleChange(() => {
+  if (_lastResult) renderReadinessResult(_lastResult);
+});
+
 async function handleVerify() {
   const state = getState();
   verifyBtn.disabled = true;
-  verifyBtn.textContent = '⟳ Checking…';
+  verifyBtn.textContent = t('checking_status');
 
   try {
     const result = await apiPost(`/services/${serviceId}/readiness`, {
@@ -24,19 +32,20 @@ async function handleVerify() {
       applicant_category: state.category || null,
     });
 
+    _lastResult = result;
     renderReadinessResult(result);
 
     if (result.ready) {
-      announce('You are ready to apply!');
-      showToast('You\'re Ready to Apply!', 'success', 4000);
+      announce(t('ready_to_apply'));
+      showToast(t('ready_to_apply'), 'success', 4000);
     } else {
       announce(result.message);
     }
   } catch (e) {
-    showToast(`Verification failed: ${e.message}`, 'error');
+    showToast(`${t('search_failed')}: ${e.message}`, 'error');
   } finally {
     verifyBtn.disabled = false;
-    verifyBtn.textContent = '✓ Verify Checklist';
+    verifyBtn.textContent = `✓ ${t('verify_btn')}`;
   }
 }
 
@@ -69,7 +78,7 @@ function renderReadyBanner(banner, result) {
   icon.style.cssText = 'background:var(--green); color:white; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;';
 
   const msg = document.createElement('span');
-  msg.textContent = result.message;
+  msg.textContent = result.message || t('ready_to_apply_msg');
 
   title.appendChild(icon);
   title.appendChild(msg);
@@ -80,7 +89,7 @@ function renderReadyBanner(banner, result) {
   if (appInfoPanel) {
     const note = document.createElement('p');
     note.style.fontSize = 'var(--font-size-sm)';
-    note.textContent = 'Review the "How to Apply" panel on the right for next steps.';
+    note.textContent = t('review_how_to_apply');
     banner.appendChild(note);
   }
 
@@ -90,7 +99,7 @@ function renderReadyBanner(banner, result) {
   disc.style.cssText = 'margin-top:var(--space-4); background:rgba(200,112,26,0.08);';
   disc.innerHTML = `<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
   const discText = document.createElement('span');
-  discText.textContent = 'Reminder: Always verify requirements with the official authority before visiting.';
+  discText.textContent = t('disclaimer_reminder');
   discText.style.fontSize = 'var(--font-size-xs)';
   disc.appendChild(discText);
   banner.appendChild(disc);
@@ -118,7 +127,7 @@ function renderNotReadyBanner(banner, result) {
   if (result.blockers?.length) {
     const blockersTitle = document.createElement('h3');
     blockersTitle.style.cssText = 'font-size:var(--font-size-sm); text-transform:uppercase; letter-spacing:0.5px; color:var(--amber); margin-bottom:var(--space-3);';
-    blockersTitle.textContent = 'Documents Blocking Your Application';
+    blockersTitle.textContent = t('docs_blocking_title');
     banner.appendChild(blockersTitle);
 
     const blockerList = document.createElement('div');
@@ -136,7 +145,7 @@ function renderNotReadyBanner(banner, result) {
       warnIcon.style.color = 'var(--amber)';
       name.appendChild(warnIcon);
       const nameText = document.createElement('span');
-      nameText.textContent = blocker.name;
+      nameText.textContent = tDoc(blocker.document_id, blocker.name);
       name.appendChild(nameText);
       el.appendChild(name);
 
@@ -144,7 +153,7 @@ function renderNotReadyBanner(banner, result) {
       if (blocker.obtain_first?.length) {
         const chainLabel = document.createElement('div');
         chainLabel.style.cssText = 'font-size:var(--font-size-xs); color:var(--grey); margin-bottom:var(--space-2);';
-        chainLabel.textContent = 'Get these first:';
+        chainLabel.textContent = t('get_these_first');
         el.appendChild(chainLabel);
 
         const chain = document.createElement('div');
@@ -153,7 +162,7 @@ function renderNotReadyBanner(banner, result) {
         blocker.obtain_first.forEach((dep, i) => {
           const chip = document.createElement('span');
           chip.className = 'obtain-chip';
-          chip.textContent = dep.name;
+          chip.textContent = tDoc(dep.document_id, dep.name);
           chain.appendChild(chip);
           if (i < blocker.obtain_first.length - 1) {
             const arrow = document.createElement('span');
@@ -172,9 +181,9 @@ function renderNotReadyBanner(banner, result) {
         const guideBtn = document.createElement('button');
         guideBtn.className = 'btn btn--outline btn--sm';
         guideBtn.style.marginTop = 'var(--space-3)';
-        guideBtn.textContent = 'How to obtain? →';
+        guideBtn.textContent = t('how_to_obtain');
         guideBtn.addEventListener('click', () => {
-          openGuide(blocker.document_id, blocker.name, [blocker.document_id], guideBtn);
+          openGuide(blocker.document_id, tDoc(blocker.document_id, blocker.name), [blocker.document_id], guideBtn);
         });
         el.appendChild(guideBtn);
       }
@@ -189,7 +198,7 @@ function renderNotReadyBanner(banner, result) {
   if (result.unverified?.length) {
     const uvTitle = document.createElement('h3');
     uvTitle.style.cssText = 'font-size:var(--font-size-sm); text-transform:uppercase; letter-spacing:0.5px; color:var(--grey); margin-top:var(--space-5); margin-bottom:var(--space-3);';
-    uvTitle.textContent = 'Not Yet Checked';
+    uvTitle.textContent = t('not_yet_checked');
     banner.appendChild(uvTitle);
 
     const uvList = document.createElement('div');
@@ -206,11 +215,11 @@ function renderNotReadyBanner(banner, result) {
 
       const nameEl = document.createElement('span');
       nameEl.style.cssText = 'font-size:var(--font-size-sm); flex:1;';
-      nameEl.textContent = item.name;
+      nameEl.textContent = tDoc(item.document_id, item.name);
 
       const markBtn = document.createElement('button');
       markBtn.className = 'btn btn--ghost btn--sm';
-      markBtn.textContent = 'Mark now →';
+      markBtn.textContent = t('mark_now');
       if (item.document_id) {
         markBtn.addEventListener('click', () => {
           const target = document.getElementById(`item-${item.document_id}`);
@@ -231,11 +240,11 @@ function renderNotReadyBanner(banner, result) {
   if (result.obtain_plan?.length) {
     const planTitle = document.createElement('h3');
     planTitle.style.cssText = 'font-size:var(--font-size-sm); text-transform:uppercase; letter-spacing:0.5px; color:var(--navy); margin-top:var(--space-5); margin-bottom:var(--space-3);';
-    planTitle.textContent = 'Recommended Obtain Order';
+    planTitle.textContent = t('recommended_order');
 
     const planDesc = document.createElement('p');
     planDesc.style.cssText = 'font-size:var(--font-size-xs); color:var(--grey); margin-bottom:var(--space-3);';
-    planDesc.textContent = 'Obtain these documents in this order (prerequisites first):';
+    planDesc.textContent = t('recommended_order_desc');
 
     banner.appendChild(planTitle);
     banner.appendChild(planDesc);
@@ -247,7 +256,8 @@ function renderNotReadyBanner(banner, result) {
     result.obtain_plan.forEach((docId, i) => {
       const chip = document.createElement('span');
       chip.className = 'obtain-chip';
-      chip.textContent = docId.replace(/_/g, ' ');
+      // Use tDoc for translation, fallback to formatted ID
+      chip.textContent = tDoc(docId, docId.replace(/_/g, ' '));
       chip.style.cursor = 'default';
       planChain.appendChild(chip);
 
@@ -267,7 +277,7 @@ function renderNotReadyBanner(banner, result) {
   if (result.ignored_ids?.length) {
     const warn = document.createElement('p');
     warn.style.cssText = 'font-size:var(--font-size-xs); color:var(--grey); margin-top:var(--space-4);';
-    warn.textContent = `Ignored unknown document IDs: ${result.ignored_ids.join(', ')}`;
+    warn.textContent = `${t('pending_review')}: ${result.ignored_ids.join(', ')}`;
     banner.appendChild(warn);
   }
 }

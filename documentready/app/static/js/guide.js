@@ -1,9 +1,11 @@
 /**
  * guide.js — Guide modal with navigation stack, breadcrumb, focus trap, Esc to close.
+ * All UI strings go through t() for full internationalisation.
  */
 import { apiGet } from './api.js';
 import { getStatus, setStatus } from './store.js';
 import { trapFocus, onEscape, announce, showToast } from './ui.js';
+import { t, tDoc, onLocaleChange } from './i18n.js';
 
 const backdrop = document.getElementById('guide-modal-backdrop');
 const modal = document.getElementById('guide-modal');
@@ -11,9 +13,21 @@ const modal = document.getElementById('guide-modal');
 // Navigation stack: array of { docId, docName }
 let _stack = [];
 let _currentDocId = null;
+let _currentDocName = null;
+let _lastGuideData = null; // cache for re-render on locale change
 let _releaseFocusTrap = null;
 let _releaseEscape = null;
 let _triggerButton = null; // The button that opened the modal
+
+// Re-render modal when locale changes (if open)
+onLocaleChange(() => {
+  if (!backdrop?.hidden && _lastGuideData) {
+    const { guide, doc, prereqLinks, depTree } = _lastGuideData;
+    renderGuideModal(guide, doc, prereqLinks, depTree);
+    if (_releaseFocusTrap) _releaseFocusTrap();
+    _releaseFocusTrap = trapFocus(modal);
+  }
+});
 
 /**
  * Open the guide modal for a document.
@@ -33,16 +47,17 @@ export async function openGuide(docId, docName, stackPath = [], trigger = null) 
 
 async function _loadGuide(docId, docName) {
   _currentDocId = docId;
+  _currentDocName = docName;
 
   // Show backdrop
   backdrop.hidden = false;
-  backdrop.setAttribute('aria-label', `How to obtain: ${docName}`);
+  backdrop.setAttribute('aria-label', `${t('how_to_obtain_title')} ${docName}`);
 
   // Show loading state
   modal.innerHTML = `
     <div class="modal__header">
-      <h2 class="modal__title" id="guide-modal-title">Loading…</h2>
-      <button class="modal__close" aria-label="Close guide" id="modal-close-btn">✕</button>
+      <h2 class="modal__title" id="guide-modal-title">${t('guide_loading')}</h2>
+      <button class="modal__close" aria-label="${t('guide_close')}" id="modal-close-btn">✕</button>
     </div>
     <div class="modal__body">
       <div class="skeleton skeleton-line" style="height:60px;"></div>
@@ -74,24 +89,26 @@ async function _loadGuide(docId, docName) {
       _stack = [{ docId, docName: doc.name }];
     }
 
+    _lastGuideData = { guide, doc, prereqLinks, depTree: data.dependency_tree };
     renderGuideModal(guide, doc, prereqLinks, data.dependency_tree);
 
     // Re-setup focus after render
     if (_releaseFocusTrap) _releaseFocusTrap();
     _releaseFocusTrap = trapFocus(modal);
 
-    announce(`Guide opened: How to obtain ${doc.name}`);
+    announce(`${t('how_to_obtain_title')} ${doc.name}`);
   } catch (e) {
+    _lastGuideData = null;
     modal.innerHTML = `
       <div class="modal__header">
-        <h2 class="modal__title" id="guide-modal-title">Guide Not Available</h2>
-        <button class="modal__close" aria-label="Close guide" id="modal-close-btn">✕</button>
+        <h2 class="modal__title" id="guide-modal-title">${t('guide_not_available')}</h2>
+        <button class="modal__close" aria-label="${t('guide_close')}" id="modal-close-btn">✕</button>
       </div>
       <div class="modal__body">
-        <div class="inline-error">⚠ Could not load guide: ${e.message}</div>
+        <div class="inline-error">⚠ ${t('search_failed')}: ${e.message}</div>
       </div>
       <div class="modal__footer">
-        <button class="btn btn--outline" id="modal-close-btn2">Close</button>
+        <button class="btn btn--outline" id="modal-close-btn2">${t('guide_close_btn')}</button>
       </div>
     `;
     document.getElementById('modal-close-btn')?.addEventListener('click', closeModal);
@@ -109,11 +126,11 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
   const title = document.createElement('h2');
   title.className = 'modal__title';
   title.id = 'guide-modal-title';
-  title.textContent = `How to obtain: ${doc.name}`;
+  title.textContent = `${t('how_to_obtain_title')} ${tDoc(doc.id, doc.name)}`;
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'modal__close';
-  closeBtn.setAttribute('aria-label', 'Close guide');
+  closeBtn.setAttribute('aria-label', t('guide_close'));
   closeBtn.textContent = '✕';
   closeBtn.addEventListener('click', closeModal);
 
@@ -138,7 +155,7 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
         const link = document.createElement('button');
         link.className = 'btn btn--ghost btn--sm';
         link.style.padding = '0 2px';
-        link.textContent = entry.docName;
+        link.textContent = tDoc(entry.docId, entry.docName);
         const targetIndex = i;
         link.addEventListener('click', () => {
           const target = _stack[targetIndex];
@@ -148,7 +165,7 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
         breadcrumb.appendChild(link);
       } else {
         const current = document.createElement('span');
-        current.textContent = entry.docName;
+        current.textContent = tDoc(entry.docId, entry.docName);
         breadcrumb.appendChild(current);
       }
     });
@@ -165,13 +182,13 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
   if (status !== 'unmarked') {
     const statusBadge = document.createElement('div');
     statusBadge.style.cssText = `display:inline-flex; align-items:center; gap:var(--space-2); padding:var(--space-2) var(--space-4); border-radius:999px; font-size:var(--font-size-sm); font-weight:600; background:${status === 'available' ? 'var(--green-tint)' : 'var(--amber-tint)'}; color:${status === 'available' ? 'var(--green)' : 'var(--amber)'};`;
-    statusBadge.textContent = status === 'available' ? '✓ You have this document' : '✗ Marked as missing';
+    statusBadge.textContent = status === 'available' ? t('guide_have_badge') : t('guide_missing_badge');
     body.appendChild(statusBadge);
   }
 
   // What it is
   if (guide.what_it_is) {
-    const sect = createSection('What it is');
+    const sect = createSection(t('guide_what'));
     const p = document.createElement('p');
     p.textContent = guide.what_it_is;
     p.style.fontSize = 'var(--font-size-sm)';
@@ -181,23 +198,23 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
 
   // Prerequisite documents (clickable!)
   if (prereqLinks.length) {
-    const sect = createSection('Prerequisites (obtain these first)');
+    const sect = createSection(t('guide_prereqs'));
     const list = document.createElement('div');
     list.className = 'modal__prereq-list';
 
     prereqLinks.forEach(prereq => {
       const chip = document.createElement('button');
       chip.className = 'prereq-chip';
-      chip.setAttribute('aria-label', `View guide for ${prereq.name}`);
+      chip.setAttribute('aria-label', `${t('how_to_obtain_title')} ${tDoc(prereq.document_id, prereq.name)}`);
 
       const nameEl = document.createElement('span');
       nameEl.className = 'prereq-chip__name';
-      nameEl.textContent = prereq.name;
+      nameEl.textContent = tDoc(prereq.document_id, prereq.name);
 
       const statusEl = document.createElement('span');
       statusEl.className = 'prereq-chip__status';
       const prereqStatus = getStatus(prereq.document_id);
-      statusEl.textContent = prereqStatus === 'available' ? '✓ Have it' : prereqStatus === 'missing' ? '✗ Missing' : '○ Unset';
+      statusEl.textContent = prereqStatus === 'available' ? t('have_it') : prereqStatus === 'missing' ? t('guide_missing_badge') : t('unset');
       statusEl.style.color = prereqStatus === 'available' ? 'var(--green)' : prereqStatus === 'missing' ? 'var(--amber)' : 'var(--grey)';
 
       chip.appendChild(nameEl);
@@ -219,7 +236,7 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
 
   // Documents required (display list)
   if (guide.documents_required?.length) {
-    const sect = createSection('Documents You Need');
+    const sect = createSection(t('guide_docs_needed'));
     const ul = document.createElement('ul');
     ul.style.cssText = 'list-style:disc; padding-left:var(--space-5); display:flex; flex-direction:column; gap:var(--space-2);';
     guide.documents_required.forEach(req => {
@@ -234,7 +251,7 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
 
   // Procedure steps
   if (guide.procedure_steps?.length) {
-    const sect = createSection('Basic Procedure');
+    const sect = createSection(t('guide_procedure'));
     const steps = document.createElement('div');
     steps.className = 'modal__steps';
 
@@ -262,7 +279,7 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
 
   // Where / how to apply
   if (guide.where_how_to_apply) {
-    const sect = createSection('Where / How to Apply');
+    const sect = createSection(t('guide_where_apply'));
     const p = document.createElement('p');
     p.textContent = guide.where_how_to_apply;
     p.style.fontSize = 'var(--font-size-sm)';
@@ -274,7 +291,7 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.className = 'btn btn--teal btn--sm';
-      link.textContent = 'Visit Official Portal ↗';
+      link.textContent = t('guide_visit_portal');
       link.style.marginTop = 'var(--space-3)';
       sect.appendChild(link);
     }
@@ -284,7 +301,7 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
 
   // Precautions
   if (guide.precautions?.length) {
-    const sect = createSection('Important Precautions');
+    const sect = createSection(t('guide_precautions'));
     const ul = document.createElement('ul');
     ul.style.cssText = 'display:flex; flex-direction:column; gap:var(--space-2);';
     guide.precautions.forEach(p => {
@@ -314,7 +331,7 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
   if (_stack.length > 1) {
     const backBtn = document.createElement('button');
     backBtn.className = 'btn btn--outline';
-    backBtn.textContent = '← Back';
+    backBtn.textContent = t('guide_back');
     backBtn.addEventListener('click', () => {
       _stack.pop();
       const prev = _stack[_stack.length - 1];
@@ -325,17 +342,17 @@ function renderGuideModal(guide, doc, prereqLinks, depTree) {
 
   const closeFooterBtn = document.createElement('button');
   closeFooterBtn.className = 'btn btn--ghost';
-  closeFooterBtn.textContent = 'Back to Checklist';
+  closeFooterBtn.textContent = t('guide_back_to_checklist');
   closeFooterBtn.addEventListener('click', closeModal);
   footer.appendChild(closeFooterBtn);
 
   // "I now have this" button
   const haveItBtn = document.createElement('button');
   haveItBtn.className = 'btn btn--teal';
-  haveItBtn.textContent = '✓ I now have this document';
+  haveItBtn.textContent = t('guide_have_it');
   haveItBtn.addEventListener('click', () => {
     setStatus(doc.id, 'available');
-    showToast(`${doc.name} marked as Available.`, 'success');
+    showToast(`${tDoc(doc.id, doc.name)} ${t('toast_marked_available')}`, 'success');
     closeModal();
   });
   footer.appendChild(haveItBtn);
@@ -358,6 +375,8 @@ function closeModal() {
   modal.innerHTML = '';
   _stack = [];
   _currentDocId = null;
+  _currentDocName = null;
+  _lastGuideData = null;
   if (_releaseFocusTrap) { _releaseFocusTrap(); _releaseFocusTrap = null; }
   if (_releaseEscape) { _releaseEscape(); _releaseEscape = null; }
   // Return focus to trigger
@@ -365,7 +384,7 @@ function closeModal() {
     _triggerButton.focus();
     _triggerButton = null;
   }
-  announce('Guide closed.');
+  announce(t('guide_back_to_checklist'));
 }
 
 // Close when clicking backdrop
