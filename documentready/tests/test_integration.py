@@ -219,6 +219,134 @@ def test_failed_source_does_not_erase_existing_data(app):
         assert src_after.next_scheduled_check is not None
 
 
+def test_monitoring_http_404_error_handling(app):
+    init_db(app, seed=True)
+    engine = MonitoringEngine()
+    with get_db_session() as s:
+        src = s.query(SourceRegistry).filter_by(id="src_uidai_aadhaar_guidelines").first()
+        if not src:
+            src = s.query(SourceRegistry).first()
+        src_id = src.id
+        initial_fingerprint = src.current_fingerprint
+        initial_failures = src.consecutive_failures
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 404
+    mock_resp.reason = "Not Found"
+    mock_resp.history = []
+
+    with patch("requests.get", return_value=mock_resp), \
+         patch("app.services.security_check.validate_and_resolve_url", return_value=("url", "1.2.3.4")):
+        res = engine.check_source(src_id)
+        assert res["status"] == "error"
+        assert "404" in res["message"]
+
+    with get_db_session() as s:
+        src_after = s.query(SourceRegistry).filter_by(id=src_id).first()
+        assert src_after.consecutive_failures == initial_failures + 1
+        assert src_after.current_fingerprint == initial_fingerprint
+        assert "404" in src_after.last_error_message
+        # Check fetch log
+        fetch = s.query(SourceFetchHistory).filter_by(source_id=src_id).order_by(SourceFetchHistory.attempted_at.desc()).first()
+        assert fetch is not None
+        assert fetch.http_status == 404
+        assert fetch.change_detected is False
+
+
+def test_monitoring_http_406_headers_and_error_handling(app):
+    init_db(app, seed=True)
+    engine = MonitoringEngine()
+    with get_db_session() as s:
+        src = s.query(SourceRegistry).first()
+        src_id = src.id
+
+    # Verify that requests.get receives Accept and Accept-Language headers
+    captured_headers = {}
+    def mock_get(url, headers=None, **kwargs):
+        captured_headers.update(headers or {})
+        resp = MagicMock()
+        resp.status_code = 406
+        resp.reason = "Not Acceptable"
+        resp.history = []
+        return resp
+
+    with patch("requests.get", side_effect=mock_get), \
+         patch("app.services.security_check.validate_and_resolve_url", return_value=("url", "1.2.3.4")):
+        res = engine.check_source(src_id)
+        assert res["status"] == "error"
+        assert "406" in res["message"]
+
+    assert "Accept" in captured_headers
+    assert "text/html" in captured_headers["Accept"]
+    assert "Accept-Language" in captured_headers
+
+    with get_db_session() as s:
+        src_after = s.query(SourceRegistry).filter_by(id=src_id).first()
+        assert src_after.consecutive_failures >= 1
+        assert "406" in src_after.last_error_message
+
+
+def test_monitoring_http_500_retries_and_exponential_backoff(app):
+    init_db(app, seed=True)
+    engine = MonitoringEngine(max_retries=2, timeout=5)
+    with get_db_session() as s:
+        src = s.query(SourceRegistry).first()
+        src_id = src.id
+
+    call_count = 0
+    def mock_500_get(url, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        resp = MagicMock()
+        resp.status_code = 500
+        resp.reason = "Internal Server Error"
+        resp.history = []
+        return resp
+
+    with patch("requests.get", side_effect=mock_500_get), \
+         patch("time.sleep", return_value=None), \
+         patch("app.services.security_check.validate_and_resolve_url", return_value=("url", "1.2.3.4")):
+        res = engine.check_source(src_id)
+        assert res["status"] == "error"
+        assert "500" in res["message"]
+        # Should have retried max_retries times (total 3 attempts: attempt 0, 1, 2)
+        assert call_count == 3
+
+    with get_db_session() as s:
+        src_after = s.query(SourceRegistry).filter_by(id=src_id).first()
+        assert src_after.consecutive_failures >= 1
+        assert "500" in src_after.last_error_message
+
+
+def test_monitoring_redirect_handling_and_ssrf_revalidation(app):
+    init_db(app, seed=True)
+    engine = MonitoringEngine()
+    with get_db_session() as s:
+        src = s.query(SourceRegistry).first()
+        src_id = src.id
+
+    mock_redirect = MagicMock()
+    mock_redirect.url = "https://aaplesarkar.mahaonline.gov.in/redirected"
+    mock_resp = MagicMock()
+    mock_resp.status_code = 304
+    mock_resp.url = "https://aaplesarkar.mahaonline.gov.in/final"
+    mock_resp.history = [mock_redirect]
+
+    validated_urls = []
+    def fake_validate(u):
+        validated_urls.append(u)
+        return (u, "103.20.10.1")
+
+    with patch("requests.get", return_value=mock_resp), \
+         patch("app.services.monitoring.validate_and_resolve_url", side_effect=fake_validate):
+        res = engine.check_source(src_id)
+        assert res["status"] == "unchanged"
+
+    # Both redirect step and final url must have been validated
+    assert "https://aaplesarkar.mahaonline.gov.in/redirected" in validated_urls
+    assert "https://aaplesarkar.mahaonline.gov.in/final" in validated_urls
+
+
 def test_concurrency_lock_prevents_overlapping_checks(app):
     init_db(app, seed=True)
     engine = MonitoringEngine()

@@ -134,14 +134,18 @@ class MonitoringEngine:
             # Step 1: SSRF Validation
             validate_and_resolve_url(source.monitored_url)
 
-            # Step 2: Fetch with conditional headers
-            headers = {"User-Agent": USER_AGENT}
+            # Step 2: Fetch with conditional headers and standard browser-like content negotiation
+            headers = {
+                "User-Agent": USER_AGENT,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9,mr;q=0.8",
+            }
             if source.etag and not force:
                 headers["If-None-Match"] = source.etag
             if source.last_modified_header and not force:
                 headers["If-Modified-Since"] = source.last_modified_header
 
-            # Attempt HTTP request with retry backoff
+            # Attempt HTTP request with bounded retry backoff (handles connection errors, timeouts, and 5xx transient server errors)
             response = None
             last_req_err = None
             for attempt in range(self.max_retries + 1):
@@ -157,10 +161,17 @@ class MonitoringEngine:
                         for resp in response.history:
                             validate_and_resolve_url(resp.url)
                         validate_and_resolve_url(response.url)
+
+                    # If 5xx transient server error and we have retries remaining, retry with exponential backoff
+                    if response.status_code >= 500 and attempt < self.max_retries:
+                        time.sleep(0.5 * (2 ** attempt))
+                        continue
+
                     break
                 except (requests.RequestException, SSRFValidationError) as err:
                     last_req_err = err
-                    time.sleep(0.5 * (2 ** attempt))
+                    if attempt < self.max_retries:
+                        time.sleep(0.5 * (2 ** attempt))
 
             if response is None:
                 raise last_req_err or Exception("Failed to connect to source.")
@@ -192,7 +203,8 @@ class MonitoringEngine:
                 }
 
             if response.status_code >= 400:
-                raise Exception(f"HTTP error {response.status_code} received from source.")
+                reason = response.reason or "Error"
+                raise Exception(f"HTTP error {response.status_code} ({reason}) received from official source URL.")
 
             # Step 3: Parse and compute fingerprint
             is_pdf = (source.source_type == "pdf" or "application/pdf" in response.headers.get("Content-Type", "").lower())

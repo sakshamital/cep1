@@ -318,6 +318,19 @@ def seed_initial_data(session: Session) -> dict[str, int]:
             src.associated_document_ids = s_info["associated_document_ids"]
             session.add(src)
             counts["sources"] += 1
+        else:
+            existing.name = s_info["name"]
+            existing.department = s_info["department"]
+            existing.jurisdiction = s_info["jurisdiction"]
+            existing.official_base_url = s_info["official_base_url"]
+            existing.monitored_url = s_info["monitored_url"]
+            existing.source_type = s_info["source_type"]
+            existing.adapter = s_info["adapter"]
+            existing.check_frequency_minutes = s_info["check_frequency_minutes"]
+            existing.priority = s_info["priority"]
+            existing.verification_policy = s_info["verification_policy"]
+            existing.associated_service_ids = s_info["associated_service_ids"]
+            existing.associated_document_ids = s_info["associated_document_ids"]
 
     # 5. States & UTs
     for st in STATES_SEED:
