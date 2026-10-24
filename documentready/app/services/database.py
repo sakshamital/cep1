@@ -52,7 +52,9 @@ def normalize_db_uri(uri: Optional[str] = None) -> str:
     postgresql:// and defaults to the psycopg (v3) driver. We explicitly specify
     psycopg2 since that is the installed driver (psycopg2-binary).
     """
-    raw = uri or os.environ.get("DATABASE_URL") or "sqlite:///instance/documentready.db"
+    _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    _default_sqlite = f"sqlite:///{os.path.join(_project_root, 'instance', 'documentready.db')}"
+    raw = uri or os.environ.get("DATABASE_URL") or _default_sqlite
     if raw.startswith("postgres://"):
         raw = raw.replace("postgres://", "postgresql+psycopg2://", 1)
     elif raw.startswith("postgresql://"):
